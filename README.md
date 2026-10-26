@@ -37,7 +37,7 @@ Next.js 16 (App Router, Server Actions) · TypeScript · PostgreSQL · Drizzle O
 npm install
 cp .env.example .env          # y pon tu DATABASE_URL
 npm run db:migrar             # crea las tablas (solo base de datos local)
-npm run crear-admin -- tu@correo.com "Tu Nombre" "una-contraseña-larga"
+npm run crear-admin -- tu-usuario "Tu Nombre" "una-contraseña-larga"
 npm run dev                   # http://localhost:3000
 ```
 

@@ -22,8 +22,8 @@ export default function PaginaLogin() {
           className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
         >
           {estado.error && <Aviso>{estado.error}</Aviso>}
-          <Campo etiqueta="Correo">
-            <Entrada name="email" type="email" autoComplete="username" required autoFocus />
+          <Campo etiqueta="Usuario o correo">
+            <Entrada name="usuario" autoComplete="username" autoCapitalize="none" required autoFocus />
           </Campo>
           <Campo etiqueta="Contraseña">
             <Entrada name="password" type="password" autoComplete="current-password" required />

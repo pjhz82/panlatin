@@ -8,12 +8,20 @@ import { db } from "@/db";
 import { rolUsuario, sesiones, usuarios } from "@/db/schema";
 import { hashPassword, requerirUsuario } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
-import { datosFormulario, erroresDeZod, esDuplicado, type EstadoFormulario } from "@/lib/formularios";
+import {
+  campoEmailOpcional,
+  campoUsuario,
+  datosFormulario,
+  erroresDeZod,
+  esDuplicado,
+  type EstadoFormulario,
+} from "@/lib/formularios";
 
 const esquema = z
   .object({
     nombre: z.string("Escribe el nombre.").max(120),
-    email: z.email("Escribe un correo válido.").transform((e) => e.toLowerCase()),
+    usuario: campoUsuario,
+    email: campoEmailOpcional,
     rol: z.enum(rolUsuario.enumValues, "Elige el rol."),
     ejecutivoId: z.coerce.number().int().positive().optional(),
     clienteId: z.coerce.number().int().positive().optional(),
@@ -50,7 +58,8 @@ export async function guardarUsuario(
 
   const valores = {
     nombre: u.nombre,
-    email: u.email,
+    usuario: u.usuario,
+    email: u.email ?? null,
     rol: u.rol,
     ejecutivoId: u.rol === "ejecutivo" ? u.ejecutivoId! : null,
     clienteId: u.rol === "cliente" ? u.clienteId! : null,
@@ -69,7 +78,9 @@ export async function guardarUsuario(
         .returning({ id: usuarios.id });
     }
   } catch (e) {
-    if (esDuplicado(e)) return { errores: { email: "Ya existe un usuario con ese correo." } };
+    if (esDuplicado(e)) {
+      return { error: "Ya existe otro usuario con ese nombre de usuario o ese correo." };
+    }
     throw e;
   }
   await registrarAuditoria({
@@ -79,6 +90,7 @@ export async function guardarUsuario(
     entidadId: id,
     detalle: {
       nombre: valores.nombre,
+      usuario: valores.usuario,
       email: valores.email,
       rol: valores.rol,
       ejecutivoId: valores.ejecutivoId,

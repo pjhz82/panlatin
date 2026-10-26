@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import { z } from "zod";
 
 /** Estado que devuelven las Server Actions de formularios a useActionState. */
 export type EstadoFormulario = {
@@ -35,3 +35,18 @@ export function esDuplicado(error: unknown): boolean {
   const e = error as { code?: string; cause?: { code?: string } };
   return e?.code === "23505" || e?.cause?.code === "23505";
 }
+
+/** Nombre de usuario para entrar: minúsculas, sin espacios. */
+export const campoUsuario = z
+  .string("Escribe el nombre de usuario.")
+  .min(3, "Mínimo 3 caracteres.")
+  .max(60)
+  // Sin @ para que nunca coincida con el correo de otra persona al entrar.
+  .regex(/^[a-zA-Z0-9._-]+$/, "Solo letras, números y . _ - (sin espacios ni @).")
+  .transform((u) => u.toLowerCase());
+
+/** Correo opcional. */
+export const campoEmailOpcional = z
+  .email("Escribe un correo válido o déjalo vacío.")
+  .transform((e) => e.toLowerCase())
+  .optional();

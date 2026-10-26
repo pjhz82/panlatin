@@ -14,7 +14,7 @@ const DURACION_SESION_MS = 12 * 60 * 60 * 1000; // una jornada
 export type UsuarioActual = {
   id: number;
   nombre: string;
-  email: string;
+  usuario: string;
   rol: Rol;
   ejecutivoId: number | null;
   clienteId: number | null;
@@ -62,7 +62,7 @@ export const obtenerUsuario = cache(async (): Promise<UsuarioActual | null> => {
     .select({
       id: usuarios.id,
       nombre: usuarios.nombre,
-      email: usuarios.email,
+      usuario: usuarios.usuario,
       rol: usuarios.rol,
       ejecutivoId: usuarios.ejecutivoId,
       clienteId: usuarios.clienteId,

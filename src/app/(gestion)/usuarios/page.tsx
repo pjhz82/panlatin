@@ -16,6 +16,7 @@ export default async function PaginaUsuarios() {
     .select({
       id: usuarios.id,
       nombre: usuarios.nombre,
+      usuario: usuarios.usuario,
       email: usuarios.email,
       rol: usuarios.rol,
       activo: usuarios.activo,
@@ -39,7 +40,7 @@ export default async function PaginaUsuarios() {
         <thead>
           <tr>
             <Th>Nombre</Th>
-            <Th>Correo</Th>
+            <Th>Usuario</Th>
             <Th>Rol</Th>
             <Th>Último acceso</Th>
             <Th>Estado</Th>
@@ -54,7 +55,10 @@ export default async function PaginaUsuarios() {
                   {u.nombre}
                 </Link>
               </Td>
-              <Td>{u.email}</Td>
+              <Td>
+                {u.usuario}
+                {u.email && <span className="block text-xs text-slate-500">{u.email}</span>}
+              </Td>
               <Td>
                 {ROLES[u.rol]}
                 {u.ejecutivo && <span className="text-slate-500"> · {u.ejecutivo}</span>}

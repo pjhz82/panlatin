@@ -8,7 +8,13 @@ import { db } from "@/db";
 import { usuarios } from "@/db/schema";
 import { hashPassword, iniciarSesion } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
-import { datosFormulario, erroresDeZod, type EstadoFormulario } from "@/lib/formularios";
+import {
+  campoEmailOpcional,
+  campoUsuario,
+  datosFormulario,
+  erroresDeZod,
+  type EstadoFormulario,
+} from "@/lib/formularios";
 
 /** Solo se puede instalar si no hay usuarios y se conoce la clave INSTALACION_TOKEN. */
 export async function hayUsuarios() {
@@ -27,7 +33,8 @@ function tokenValido(token: string | undefined) {
 const esquema = z.object({
   token: z.string("Escribe la clave de instalación."),
   nombre: z.string("Escribe tu nombre.").max(120),
-  email: z.email("Escribe un correo válido.").transform((e) => e.toLowerCase()),
+  usuario: campoUsuario,
+  email: campoEmailOpcional,
   password: z.string("Escribe una contraseña.").min(12, "Mínimo 12 caracteres."),
 });
 
@@ -41,7 +48,8 @@ export async function instalar(_prev: EstadoFormulario, formData: FormData): Pro
     .insert(usuarios)
     .values({
       nombre: datos.data.nombre,
-      email: datos.data.email,
+      usuario: datos.data.usuario,
+      email: datos.data.email ?? null,
       passwordHash: await hashPassword(datos.data.password),
       rol: "admin",
     })

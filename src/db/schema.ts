@@ -103,7 +103,10 @@ export const cuentas = pgTable(
 export const usuarios = pgTable("usuarios", {
   id: serial("id").primaryKey(),
   nombre: text("nombre").notNull(),
-  email: text("email").notNull().unique(),
+  /** Nombre con el que se entra (p. ej. "carmen"). */
+  usuario: text("usuario").notNull().unique(),
+  /** Opcional; también sirve para entrar. */
+  email: text("email").unique(),
   passwordHash: text("password_hash").notNull(),
   rol: rolUsuario("rol").notNull(),
   /** Solo para rol ejecutivo. */

@@ -11,7 +11,8 @@ import { guardarUsuario } from "./actions";
 type Usuario = {
   id: number;
   nombre: string;
-  email: string;
+  usuario: string;
+  email: string | null;
   rol: Rol;
   ejecutivoId: number | null;
   clienteId: number | null;
@@ -38,9 +39,14 @@ export function FormularioUsuario({
         <Campo etiqueta="Nombre" error={e.nombre}>
           <Entrada name="nombre" defaultValue={usuario?.nombre} required />
         </Campo>
-        <Campo etiqueta="Correo" error={e.email}>
-          <Entrada name="email" type="email" defaultValue={usuario?.email} required />
-        </Campo>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Campo etiqueta="Usuario" error={e.usuario} ayuda="Con él entra a la web. Ej.: carmen">
+            <Entrada name="usuario" defaultValue={usuario?.usuario} autoCapitalize="none" required />
+          </Campo>
+          <Campo etiqueta="Correo (opcional)" error={e.email}>
+            <Entrada name="email" type="email" defaultValue={usuario?.email ?? ""} />
+          </Campo>
+        </div>
         <Campo etiqueta="Rol" error={e.rol}>
           <Selector name="rol" value={rol} onChange={(ev) => setRol(ev.target.value as Rol)}>
             {Object.entries(ROLES).map(([valor, texto]) => (

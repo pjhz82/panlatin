@@ -17,6 +17,7 @@ export default async function PaginaEditarUsuario({ params }: PageProps<"/usuari
         .select({
           id: usuarios.id,
           nombre: usuarios.nombre,
+          usuario: usuarios.usuario,
           email: usuarios.email,
           rol: usuarios.rol,
           ejecutivoId: usuarios.ejecutivoId,
@@ -31,7 +32,7 @@ export default async function PaginaEditarUsuario({ params }: PageProps<"/usuari
   const [ejecutivos, clientes] = await opcionesUsuario();
   return (
     <>
-      <Encabezado titulo={usuario.nombre} descripcion={usuario.email} />
+      <Encabezado titulo={usuario.nombre} descripcion={usuario.email ? `${usuario.usuario} · ${usuario.email}` : usuario.usuario} />
       <FormularioUsuario usuario={usuario} ejecutivos={ejecutivos} clientes={clientes} />
     </>
   );

@@ -22,8 +22,11 @@ export function FormularioInstalacion() {
       <Campo etiqueta="Tu nombre" error={e.nombre}>
         <Entrada name="nombre" required />
       </Campo>
-      <Campo etiqueta="Correo" error={e.email}>
-        <Entrada name="email" type="email" required autoComplete="username" />
+      <Campo etiqueta="Usuario" error={e.usuario} ayuda="Con él entrarás a la web.">
+        <Entrada name="usuario" required autoComplete="username" autoCapitalize="none" />
+      </Campo>
+      <Campo etiqueta="Correo (opcional)" error={e.email}>
+        <Entrada name="email" type="email" />
       </Campo>
       <Campo etiqueta="Contraseña" error={e.password} ayuda="Mínimo 12 caracteres.">
         <Entrada name="password" type="password" required autoComplete="new-password" />

@@ -51,7 +51,7 @@ export default async function PaginaCliente({ params }: PageProps<"/clientes/[id
       .orderBy(asc(ejecutivos.codigo)),
     usuario.rol === "admin"
       ? db
-          .select({ id: usuarios.id, nombre: usuarios.nombre, email: usuarios.email, activo: usuarios.activo })
+          .select({ id: usuarios.id, nombre: usuarios.nombre, usuario: usuarios.usuario, activo: usuarios.activo })
           .from(usuarios)
           .where(eq(usuarios.clienteId, id))
       : Promise.resolve([]),
@@ -129,7 +129,7 @@ export default async function PaginaCliente({ params }: PageProps<"/clientes/[id
             <ul className="space-y-1 text-sm">
               {accesos.map((a) => (
                 <li key={a.id}>
-                  {a.nombre} · {a.email} {!a.activo && <Insignia>Inactivo</Insignia>}
+                  {a.nombre} · usuario «{a.usuario}» {!a.activo && <Insignia>Inactivo</Insignia>}
                 </li>
               ))}
             </ul>
