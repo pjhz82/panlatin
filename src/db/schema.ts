@@ -218,6 +218,8 @@ export const operaciones = pgTable(
       .references(() => usuarios.id),
     creadoEn: creadoEn(),
     motivoCierre: text("motivo_cierre"),
+    /** Registrada desde la hoja del cliente: al tener las firmas se ejecuta sola, con su fecha. */
+    ejecutarAlAprobar: boolean("ejecutar_al_aprobar").notNull().default(false),
   },
   (t) => [index("operaciones_estado_idx").on(t.estado, t.fecha), index("operaciones_subcuenta_idx").on(t.subcuentaId)],
 );

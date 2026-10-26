@@ -26,11 +26,21 @@ const num = (v: string) => {
 /** Acepta 1.234,56 o 1234.56 */
 const leer = (v: string) => (v.includes(",") ? num(v) : Number(v) || 0);
 
-export function FormularioOperacion({ cuentas, subcuentas, hoy }: { cuentas: Cuenta[]; subcuentas: string[]; hoy: string }) {
+export function FormularioOperacion({
+  cuentas,
+  subcuentas,
+  hoy,
+  subcuentaInicial = "",
+}: {
+  cuentas: Cuenta[];
+  subcuentas: string[];
+  hoy: string;
+  subcuentaInicial?: string;
+}) {
   const [estado, accion] = useActionState(crearOperacion, estadoInicial);
   const [tipo, setTipo] = useState<TipoOperacion>("compra");
   const [fecha, setFecha] = useState(hoy);
-  const [subcuenta, setSubcuenta] = useState("");
+  const [subcuenta, setSubcuenta] = useState(subcuentaInicial);
   const [descripcion, setDescripcion] = useState("");
   const [montoUsd, setMontoUsd] = useState("");
   const [tasa, setTasa] = useState("");

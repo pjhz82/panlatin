@@ -225,3 +225,24 @@ export async function referenciaExcel(destino: Destino) {
     .limit(1);
   return r ? { hoja: r.hoja, saldo: r.saldo === null ? null : Number(r.saldo), cargadoEn: r.cargadoEn } : null;
 }
+
+/** Hoja del cliente (como en el Excel): todos los movimientos en orden cronológico con su saldo. */
+export async function hojaDeCuenta(destino: Destino) {
+  const filas = await db
+    .select({
+      id: movimientos.id,
+      fecha: movimientos.fecha,
+      concepto: movimientos.concepto,
+      detalle: movimientos.detalle,
+      formaPago: movimientos.formaPago,
+      referencia: movimientos.referencia,
+      nota: movimientos.nota,
+      origen: movimientos.origen,
+      importe: movimientos.importe,
+      saldo: sql<string>`sum(${movimientos.importe}) over (order by ${movimientos.fecha}, ${movimientos.id})`,
+    })
+    .from(movimientos)
+    .where(condicionDestino(destino))
+    .orderBy(asc(movimientos.fecha), asc(movimientos.id));
+  return filas.map((f) => ({ ...f, importe: Number(f.importe), saldo: Number(f.saldo) }));
+}

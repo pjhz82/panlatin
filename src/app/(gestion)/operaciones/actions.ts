@@ -5,11 +5,12 @@ import { redirect } from "next/navigation";
 import { and, count, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { cuentas, estadoOperacion, firmas, movimientos, operaciones, partidas, subcuentas, tipoOperacion } from "@/db/schema";
+import { cuentas, estadoOperacion, firmas, operaciones, partidas, subcuentas, tipoOperacion } from "@/db/schema";
 import { requerirUsuario } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
 import type { EstadoFormulario } from "@/lib/formularios";
-import { CON_CLIENTE, FIRMAS_REQUERIDAS, TIPOS_OPERACION } from "@/lib/operaciones";
+import { ejecutarPartidaEnTx } from "@/lib/ejecucion";
+import { CON_CLIENTE, FIRMAS_REQUERIDAS } from "@/lib/operaciones";
 
 const numero = z.number().finite();
 
@@ -112,7 +113,7 @@ export async function firmarOperacion(operacionId: number, _prev: EstadoFormular
   const comentario = String(formData.get("comentario") ?? "").trim().slice(0, 500) || null;
   if (!aprueba && !comentario) return { error: "Para rechazar, explica el motivo en el comentario." };
 
-  const resultado = await db.transaction(async (tx) => {
+  const firmar = () => db.transaction(async (tx) => {
     const [op] = await tx.select().from(operaciones).where(eq(operaciones.id, operacionId)).for("update");
     if (!op) return "No existe la operación.";
     if (op.estado !== "pendiente_firmas") return "Esta operación ya no está pendiente de firmas.";
@@ -126,10 +127,31 @@ export async function firmarOperacion(operacionId: number, _prev: EstadoFormular
       await tx.update(operaciones).set({ estado: "rechazada", motivoCierre: comentario }).where(eq(operaciones.id, operacionId));
     } else {
       const [{ n }] = await tx.select({ n: count() }).from(firmas).where(and(eq(firmas.operacionId, operacionId), eq(firmas.aprueba, true)));
-      if (n >= FIRMAS_REQUERIDAS) await tx.update(operaciones).set({ estado: "aprobada" }).where(eq(operaciones.id, operacionId));
+      if (n >= FIRMAS_REQUERIDAS) {
+        await tx.update(operaciones).set({ estado: "aprobada" }).where(eq(operaciones.id, operacionId));
+        op.estado = "aprobada";
+        // Registrada desde la hoja del cliente: se ejecuta sola con su fecha.
+        if (op.ejecutarAlAprobar) {
+          const pendientes = await tx
+            .select({ id: partidas.id })
+            .from(partidas)
+            .where(and(eq(partidas.operacionId, operacionId), isNull(partidas.ejecutadaEn)))
+            .orderBy(partidas.orden);
+          for (const p of pendientes) {
+            const error = await ejecutarPartidaEnTx(tx, op, p.id, { fecha: op.fecha, usuarioId: usuario.id });
+            if (error) throw new Error(error);
+          }
+        }
+      }
     }
     return null;
   });
+  let resultado: string | null;
+  try {
+    resultado = await firmar();
+  } catch (e) {
+    resultado = `No se pudo firmar: ${e instanceof Error ? e.message : "error inesperado"}`;
+  }
   if (resultado) return { error: resultado };
   await registrarAuditoria({ usuarioId: usuario.id, accion: "editar", entidad: "operacion", entidadId: operacionId, detalle: { firma: aprueba ? "aprueba" : "rechaza", comentario } });
   revalidatePath(`/operaciones/${operacionId}`);
@@ -151,41 +173,11 @@ export async function ejecutarPartida(partidaId: number, _prev: EstadoFormulario
   if (!datos.success) return { error: datos.error.issues[0].message };
 
   const resultado = await db.transaction(async (tx) => {
-    const [p] = await tx.select().from(partidas).where(eq(partidas.id, partidaId));
+    const [p] = await tx.select({ operacionId: partidas.operacionId }).from(partidas).where(eq(partidas.id, partidaId));
     if (!p) return { error: "No existe la partida." };
     const [op] = await tx.select().from(operaciones).where(eq(operaciones.id, p.operacionId)).for("update");
-    if (op.estado !== "aprobada" && op.estado !== "en_ejecucion") {
-      return { error: "Solo se ejecutan partidas de operaciones aprobadas (con las firmas completas)." };
-    }
-    if (p.ejecutadaEn) return { error: "Esta partida ya se ejecutó." };
-
-    const [cuenta] = p.cuentaId ? await tx.select({ nombre: cuentas.nombre }).from(cuentas).where(eq(cuentas.id, p.cuentaId)) : [];
-    const concepto = `${TIPOS_OPERACION[op.tipo].nombre} · Op. ${op.id}`;
-    const base = {
-      fecha: datos.data.fecha,
-      concepto,
-      detalle: [p.descripcion, op.descripcion].filter(Boolean).join(" · "),
-      referencia: datos.data.referencia ?? null,
-      origen: "operacion",
-      partidaId: p.id,
-      creadoPor: usuario.id,
-    };
-    if (p.cuentaId && Number(p.importeCuenta) !== 0) {
-      await tx.insert(movimientos).values({ ...base, cuentaId: p.cuentaId, importe: p.importeCuenta! });
-    }
-    if (op.subcuentaId && Number(p.efectoCliente) !== 0) {
-      await tx.insert(movimientos).values({ ...base, subcuentaId: op.subcuentaId, formaPago: cuenta?.nombre ?? null, importe: p.efectoCliente! });
-    }
-    await tx
-      .update(partidas)
-      .set({ ejecutadaEn: datos.data.fecha, referencia: datos.data.referencia ?? null, ejecutadaPor: usuario.id })
-      .where(eq(partidas.id, p.id));
-    const [{ n }] = await tx
-      .select({ n: count() })
-      .from(partidas)
-      .where(and(eq(partidas.operacionId, op.id), isNull(partidas.ejecutadaEn)));
-    await tx.update(operaciones).set({ estado: n === 0 ? "completada" : "en_ejecucion" }).where(eq(operaciones.id, op.id));
-    return { operacionId: op.id };
+    const error = await ejecutarPartidaEnTx(tx, op, partidaId, { ...datos.data, usuarioId: usuario.id });
+    return error ? { error } : { operacionId: op.id };
   });
   if ("error" in resultado) return { error: resultado.error };
   await registrarAuditoria({ usuarioId: usuario.id, accion: "editar", entidad: "operacion", entidadId: resultado.operacionId, detalle: { ejecutaPartida: partidaId, ...datos.data } });

@@ -48,14 +48,17 @@ export async function EstadoDeCuenta({
   const paginas = Math.max(1, Math.ceil(estado.total / POR_PAGINA));
   const cuadra = referencia?.saldo === null || referencia === null ? null : Math.abs(saldoActual - referencia.saldo) < 0.05;
 
+  // La ruta puede traer parámetros propios (p. ej. ?vista=panel) que hay que conservar.
+  const [rutaBase, consultaBase = ""] = ruta.split("?");
+  const fijos = [...new URLSearchParams(consultaBase).entries()];
   const enlace = (pagina: number) => {
-    const p = new URLSearchParams();
+    const p = new URLSearchParams(consultaBase);
     if (filtro.desde) p.set("desde", filtro.desde);
     if (filtro.hasta) p.set("hasta", filtro.hasta);
     if (filtro.q) p.set("q", filtro.q);
     if (pagina > 1) p.set("pagina", String(pagina));
     const s = p.toString();
-    return s ? `${ruta}?${s}` : ruta;
+    return s ? `${rutaBase}?${s}` : rutaBase;
   };
 
   return (
@@ -112,7 +115,10 @@ export async function EstadoDeCuenta({
       <section>
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
           <h2 className="text-lg font-semibold">Estado de cuenta</h2>
-          <form className="flex flex-wrap items-end gap-2" action={ruta}>
+          <form className="flex flex-wrap items-end gap-2" action={rutaBase}>
+            {fijos.map(([k, v]) => (
+              <input key={k} type="hidden" name={k} value={v} />
+            ))}
             <label className="text-xs text-slate-500">
               Desde
               <Entrada type="date" name="desde" defaultValue={filtro.desde} className="mt-1 w-40" />

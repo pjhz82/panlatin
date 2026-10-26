@@ -1,0 +1,1 @@
+ALTER TABLE "operaciones" ADD COLUMN "ejecutar_al_aprobar" boolean DEFAULT false NOT NULL;

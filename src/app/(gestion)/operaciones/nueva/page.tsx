@@ -7,7 +7,7 @@ import { FormularioOperacion } from "./formulario";
 
 export const metadata = { title: "Nueva operación" };
 
-export default async function PaginaNuevaOperacion() {
+export default async function PaginaNuevaOperacion({ searchParams }: PageProps<"/operaciones/nueva">) {
   await requerirUsuario(["admin", "operadora"]);
   const [listaCuentas, listaSubcuentas] = await Promise.all([
     db
@@ -24,6 +24,7 @@ export default async function PaginaNuevaOperacion() {
         cuentas={listaCuentas}
         subcuentas={listaSubcuentas.map((s) => s.nombre)}
         hoy={new Date().toISOString().slice(0, 10)}
+        subcuentaInicial={typeof (await searchParams).subcuenta === "string" ? String((await searchParams).subcuenta) : ""}
       />
     </>
   );

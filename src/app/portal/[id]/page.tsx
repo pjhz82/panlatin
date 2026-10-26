@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { clientes, subcuentas } from "@/db/schema";
+import { DescargarPdf } from "@/components/descargar-pdf";
 import { EstadoDeCuenta } from "@/components/estado-cuenta";
 import { Encabezado } from "@/components/ui";
 import { requerirUsuario } from "@/lib/auth";
@@ -31,6 +32,9 @@ export default async function PaginaPortalSubcuenta({ params, searchParams }: Pa
           </Link>
         }
       />
+      <div className="mb-6">
+        <DescargarPdf ruta={`/portal/${sub.id}/pdf`} />
+      </div>
       <EstadoDeCuenta destino={{ subcuentaId: sub.id }} moneda="USD" parametros={await searchParams} ruta={`/portal/${sub.id}`} mostrarRevision={false} />
     </>
   );
