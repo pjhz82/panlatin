@@ -32,7 +32,7 @@ export const redBlockchain = pgEnum("red_blockchain", ["TRON", "ETH"]);
 const creadoEn = () =>
   timestamp("creado_en", { withTimezone: true }).notNull().defaultNow();
 
-/** Empresas del holding (Panlatin, Agrolaubur, Transocéanica…). */
+/** Empresas del holding. */
 export const empresas = pgTable("empresas", {
   id: serial("id").primaryKey(),
   nombre: text("nombre").notNull().unique(),
@@ -61,7 +61,7 @@ export const clientes = pgTable("clientes", {
 });
 
 /**
- * Subcuenta de un cliente (p. ej. "Michele Di Carlo - Axon"). Cada una lleva
+ * Subcuenta de un cliente (p. ej. "Cliente - Empresa A"). Cada una lleva
  * su propio estado de cuenta, como si fuera un cliente distinto.
  */
 export const subcuentas = pgTable(
