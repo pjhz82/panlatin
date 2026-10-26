@@ -22,7 +22,12 @@ export type SaldoSubcuenta = {
 };
 
 /** Saldo de cada subcuenta visible para el usuario. Positivo = a favor del cliente; negativo = por cobrar. */
-export async function saldosSubcuentas(usuario: UsuarioActual, extra?: SQL): Promise<SaldoSubcuenta[]> {
+export async function saldosSubcuentas(
+  usuario: UsuarioActual,
+  extra?: SQL,
+  /** Fecha de corte (incluida). Sin ella, el saldo de hoy con todo lo registrado. */
+  hasta?: string,
+): Promise<SaldoSubcuenta[]> {
   const ejecutivoEfectivo = ejecutivos.codigo;
   const filas = await db
     .select({
@@ -38,7 +43,10 @@ export async function saldosSubcuentas(usuario: UsuarioActual, extra?: SQL): Pro
     .from(subcuentas)
     .innerJoin(clientes, eq(clientes.id, subcuentas.clienteId))
     .leftJoin(ejecutivos, eq(ejecutivos.id, ejecutivoDeSubcuenta))
-    .leftJoin(movimientos, eq(movimientos.subcuentaId, subcuentas.id))
+    .leftJoin(
+      movimientos,
+      and(eq(movimientos.subcuentaId, subcuentas.id), hasta ? lte(movimientos.fecha, hasta) : undefined),
+    )
     .where(and(filtroSubcuentas(usuario), extra))
     .groupBy(subcuentas.id, clientes.id, ejecutivos.codigo)
     .orderBy(asc(subcuentas.nombre));
@@ -50,6 +58,7 @@ export type SaldoCuenta = {
   nombre: string;
   tipo: string;
   moneda: Moneda;
+  empresaId: number | null;
   empresa: string | null;
   activa: boolean;
   saldo: number;
@@ -57,13 +66,14 @@ export type SaldoCuenta = {
   ultimo: string | null;
 };
 
-export async function saldosCuentas(): Promise<SaldoCuenta[]> {
+export async function saldosCuentas(hasta?: string): Promise<SaldoCuenta[]> {
   const filas = await db
     .select({
       id: cuentas.id,
       nombre: cuentas.nombre,
       tipo: cuentas.tipo,
       moneda: cuentas.moneda,
+      empresaId: cuentas.empresaId,
       empresa: empresas.nombre,
       activa: cuentas.activa,
       saldo: suma,
@@ -72,7 +82,10 @@ export async function saldosCuentas(): Promise<SaldoCuenta[]> {
     })
     .from(cuentas)
     .leftJoin(empresas, eq(empresas.id, cuentas.empresaId))
-    .leftJoin(movimientos, eq(movimientos.cuentaId, cuentas.id))
+    .leftJoin(
+      movimientos,
+      and(eq(movimientos.cuentaId, cuentas.id), hasta ? lte(movimientos.fecha, hasta) : undefined),
+    )
     .groupBy(cuentas.id, empresas.nombre)
     .orderBy(asc(cuentas.nombre));
   return filas.map((f) => ({ ...f, saldo: Number(f.saldo) }));

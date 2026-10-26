@@ -16,7 +16,7 @@ export function Marco({
 }) {
   return (
     <div className="min-h-screen md:flex">
-      <aside className="bg-slate-900 px-4 py-4 text-white md:sticky md:top-0 md:flex md:h-screen md:w-60 md:shrink-0 md:flex-col md:py-6">
+      <aside className="bg-slate-900 print:hidden px-4 py-4 text-white md:sticky md:top-0 md:flex md:h-screen md:w-60 md:shrink-0 md:flex-col md:py-6">
         <div className="mb-4 px-3 md:mb-8">
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Panlatin</p>
           <p className="text-lg font-semibold">Tesorería</p>
@@ -37,7 +37,7 @@ export function Marco({
           </div>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">
+      <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8 print:p-0">
         <div className="mx-auto max-w-6xl">{children}</div>
       </main>
     </div>
