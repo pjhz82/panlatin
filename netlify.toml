@@ -4,3 +4,7 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# Adaptador de Next.js (SSR, Server Actions y proxy como funciones de Netlify)
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
