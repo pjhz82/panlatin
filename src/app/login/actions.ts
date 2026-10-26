@@ -42,7 +42,7 @@ export async function entrar(_prev: EstadoFormulario, formData: FormData): Promi
 
   await iniciarSesion(usuario.id);
   await registrarAuditoria({ usuarioId: usuario.id, accion: "login", entidad: "usuario", entidadId: usuario.id });
-  redirect(usuario.rol === "cliente" ? "/portal" : "/");
+  redirect(usuario.debeCambiarPassword ? "/cambiar-clave" : usuario.rol === "cliente" ? "/portal" : "/");
 }
 
 export async function salir() {

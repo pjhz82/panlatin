@@ -61,7 +61,8 @@ export async function guardarUsuario(
     usuario: u.usuario,
     email: u.email ?? null,
     rol: u.rol,
-    ejecutivoId: u.rol === "ejecutivo" ? u.ejecutivoId! : null,
+    // Un administrador puede estar vinculado a un ejecutivo (para firmar pedidos).
+    ejecutivoId: u.rol === "ejecutivo" || u.rol === "admin" ? (u.ejecutivoId ?? null) : null,
     clienteId: u.rol === "cliente" ? u.clienteId! : null,
     activo,
     ...(u.password ? { passwordHash: await hashPassword(u.password) } : {}),

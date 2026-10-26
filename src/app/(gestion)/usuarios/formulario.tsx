@@ -56,10 +56,14 @@ export function FormularioUsuario({
             ))}
           </Selector>
         </Campo>
-        {rol === "ejecutivo" && (
-          <Campo etiqueta="Ejecutivo" error={e.ejecutivoId}>
+        {(rol === "ejecutivo" || rol === "admin") && (
+          <Campo
+            etiqueta={rol === "admin" ? "Ejecutivo vinculado (opcional)" : "Ejecutivo"}
+            error={e.ejecutivoId}
+            ayuda={rol === "admin" ? "Si es un ejecutivo con acceso total, elige su código." : undefined}
+          >
             <Selector name="ejecutivoId" defaultValue={usuario?.ejecutivoId ?? ""}>
-              <option value="">Elige…</option>
+              <option value="">{rol === "admin" ? "Ninguno" : "Elige…"}</option>
               {ejecutivos.map((ej) => (
                 <option key={ej.id} value={ej.id}>
                   {ej.codigo} — {ej.nombre}

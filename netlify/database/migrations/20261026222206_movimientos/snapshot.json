@@ -1,0 +1,1758 @@
+{
+  "version": "8",
+  "dialect": "postgres",
+  "id": "22a769ee-899c-4c0f-a606-f1933918b11e",
+  "prevIds": [
+    "c457150a-f206-4eaf-b8bb-521070793e1a"
+  ],
+  "ddl": [
+    {
+      "values": [
+        "BS",
+        "USD",
+        "USDT",
+        "USDC"
+      ],
+      "name": "moneda",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "TRON",
+        "ETH"
+      ],
+      "name": "red_blockchain",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "admin",
+        "ejecutivo",
+        "operadora",
+        "cliente"
+      ],
+      "name": "rol_usuario",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "banco",
+        "wallet",
+        "exchange",
+        "caja"
+      ],
+      "name": "tipo_cuenta",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "auditoria",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "clientes",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "configuracion",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "cuentas",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "ejecutivos",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "empresas",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "movimientos",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "referencias_excel",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "sesiones",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "subcuentas",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "usuarios",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auditoria"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "usuario_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auditoria"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "accion",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auditoria"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "entidad",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auditoria"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "entidad_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auditoria"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "detalle",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auditoria"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "creado_en",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "auditoria"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "clientes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "nombre",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "clientes"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ejecutivo_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "clientes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "notas",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "clientes"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "activo",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "clientes"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "creado_en",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "clientes"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "clave",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "configuracion"
+    },
+    {
+      "type": "jsonb",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "valor",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "configuracion"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "nombre",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "type": "tipo_cuenta",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "tipo",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "type": "moneda",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "moneda",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "empresa_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "entidad",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "numero",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "type": "red_blockchain",
+      "typeSchema": "public",
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "red",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "direccion",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "activa",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "creado_en",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ejecutivos"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "codigo",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ejecutivos"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "nombre",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ejecutivos"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "activo",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ejecutivos"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "creado_en",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ejecutivos"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "empresas"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "nombre",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "empresas"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "pais",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "empresas"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "activa",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "empresas"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "creado_en",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "empresas"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "fecha",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "subcuenta_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "cuenta_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "concepto",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "detalle",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "forma_pago",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "referencia",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "nota",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "numeric(24,6)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "importe",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'manual'",
+      "generated": null,
+      "identity": null,
+      "name": "origen",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "creado_por",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "creado_en",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "referencias_excel"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "subcuenta_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "referencias_excel"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "cuenta_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "referencias_excel"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "hoja",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "referencias_excel"
+    },
+    {
+      "type": "numeric(24,6)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "saldo",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "referencias_excel"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "movimientos",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "referencias_excel"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "cargado_en",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "referencias_excel"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sesiones"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "usuario_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sesiones"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "expira_en",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sesiones"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "creado_en",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "sesiones"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subcuentas"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "cliente_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subcuentas"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "nombre",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subcuentas"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ejecutivo_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subcuentas"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "activa",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subcuentas"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "creado_en",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "subcuentas"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "nombre",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "usuario",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "email",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "password_hash",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "type": "rol_usuario",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "rol",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ejecutivo_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "cliente_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "activo",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "debe_cambiar_password",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ultimo_acceso",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "creado_en",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "entidad",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "entidad_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "auditoria_entidad_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "auditoria"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "red",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "direccion",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "cuentas_direccion_red_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "subcuenta_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "fecha",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "movimientos_subcuenta_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "cuenta_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "fecha",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "movimientos_cuenta_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "subcuenta_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "referencias_subcuenta_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "referencias_excel"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "cuenta_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "referencias_cuenta_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "referencias_excel"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "usuario_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "sesiones_usuario_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "sesiones"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "cliente_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "subcuentas_cliente_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "subcuentas"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "usuario_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "usuarios",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "auditoria_usuario_id_usuarios_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "auditoria"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "ejecutivo_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "ejecutivos",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "clientes_ejecutivo_id_ejecutivos_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "clientes"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "empresa_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "empresas",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "cuentas_empresa_id_empresas_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "cuentas"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "subcuenta_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "subcuentas",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "movimientos_subcuenta_id_subcuentas_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "cuenta_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "cuentas",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "movimientos_cuenta_id_cuentas_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "creado_por"
+      ],
+      "schemaTo": "public",
+      "tableTo": "usuarios",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "movimientos_creado_por_usuarios_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "movimientos"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "subcuenta_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "subcuentas",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "referencias_excel_subcuenta_id_subcuentas_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "referencias_excel"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "cuenta_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "cuentas",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "referencias_excel_cuenta_id_cuentas_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "referencias_excel"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "usuario_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "usuarios",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "sesiones_usuario_id_usuarios_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "sesiones"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "cliente_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "clientes",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "subcuentas_cliente_id_clientes_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "subcuentas"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "ejecutivo_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "ejecutivos",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "subcuentas_ejecutivo_id_ejecutivos_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "subcuentas"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "ejecutivo_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "ejecutivos",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "usuarios_ejecutivo_id_ejecutivos_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "cliente_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "clientes",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "usuarios_cliente_id_clientes_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "usuarios"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "auditoria_pkey",
+      "schema": "public",
+      "table": "auditoria",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "clientes_pkey",
+      "schema": "public",
+      "table": "clientes",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "clave"
+      ],
+      "nameExplicit": false,
+      "name": "configuracion_pkey",
+      "schema": "public",
+      "table": "configuracion",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "cuentas_pkey",
+      "schema": "public",
+      "table": "cuentas",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "ejecutivos_pkey",
+      "schema": "public",
+      "table": "ejecutivos",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "empresas_pkey",
+      "schema": "public",
+      "table": "empresas",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "movimientos_pkey",
+      "schema": "public",
+      "table": "movimientos",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "referencias_excel_pkey",
+      "schema": "public",
+      "table": "referencias_excel",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "sesiones_pkey",
+      "schema": "public",
+      "table": "sesiones",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "subcuentas_pkey",
+      "schema": "public",
+      "table": "subcuentas",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "usuarios_pkey",
+      "schema": "public",
+      "table": "usuarios",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "nombre"
+      ],
+      "nullsNotDistinct": false,
+      "name": "clientes_nombre_key",
+      "schema": "public",
+      "table": "clientes",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "nombre"
+      ],
+      "nullsNotDistinct": false,
+      "name": "cuentas_nombre_key",
+      "schema": "public",
+      "table": "cuentas",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "codigo"
+      ],
+      "nullsNotDistinct": false,
+      "name": "ejecutivos_codigo_key",
+      "schema": "public",
+      "table": "ejecutivos",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "nombre"
+      ],
+      "nullsNotDistinct": false,
+      "name": "empresas_nombre_key",
+      "schema": "public",
+      "table": "empresas",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "nombre"
+      ],
+      "nullsNotDistinct": false,
+      "name": "subcuentas_nombre_key",
+      "schema": "public",
+      "table": "subcuentas",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "usuario"
+      ],
+      "nullsNotDistinct": false,
+      "name": "usuarios_usuario_key",
+      "schema": "public",
+      "table": "usuarios",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "email"
+      ],
+      "nullsNotDistinct": false,
+      "name": "usuarios_email_key",
+      "schema": "public",
+      "table": "usuarios",
+      "entityType": "uniques"
+    },
+    {
+      "value": "(\"subcuenta_id\" is null) <> (\"cuenta_id\" is null)",
+      "name": "movimientos_un_destino",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "movimientos"
+    }
+  ],
+  "renames": []
+}

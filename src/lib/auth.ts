@@ -18,6 +18,7 @@ export type UsuarioActual = {
   rol: Rol;
   ejecutivoId: number | null;
   clienteId: number | null;
+  debeCambiarPassword: boolean;
 };
 
 const hashToken = (token: string) =>
@@ -66,6 +67,7 @@ export const obtenerUsuario = cache(async (): Promise<UsuarioActual | null> => {
       rol: usuarios.rol,
       ejecutivoId: usuarios.ejecutivoId,
       clienteId: usuarios.clienteId,
+      debeCambiarPassword: usuarios.debeCambiarPassword,
     })
     .from(sesiones)
     .innerJoin(usuarios, eq(usuarios.id, sesiones.usuarioId))
@@ -87,6 +89,7 @@ export const obtenerUsuario = cache(async (): Promise<UsuarioActual | null> => {
 export async function requerirUsuario(roles?: readonly Rol[]): Promise<UsuarioActual> {
   const usuario = await obtenerUsuario();
   if (!usuario) redirect("/login");
+  if (usuario.debeCambiarPassword) redirect("/cambiar-clave");
   if (roles && !roles.includes(usuario.rol)) {
     redirect(usuario.rol === "cliente" ? "/portal" : "/");
   }

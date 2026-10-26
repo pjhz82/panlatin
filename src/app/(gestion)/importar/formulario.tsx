@@ -16,11 +16,12 @@ export function FormularioImportacion() {
         {estado.error && <Aviso>{estado.error}</Aviso>}
         {r && (
           <Aviso tipo="info">
-            Importación terminada. Nuevos: {r.empresas} empresas, {r.ejecutivos} ejecutivos, {r.clientes}{" "}
-            clientes, {r.subcuentas} subcuentas y {r.cuentas} cuentas.
+            Importación terminada. Nuevos: {r.empresas} empresas, {r.ejecutivos} ejecutivos, {r.clientes} clientes,{" "}
+            {r.subcuentas} subcuentas, {r.cuentas} cuentas y {r.usuarios} usuarios. Movimientos cargados:{" "}
+            {r.movimientos.toLocaleString("es")}.
           </Aviso>
         )}
-        <Campo etiqueta="Archivo de catálogos (.json)">
+        <Campo etiqueta="Archivo de datos (.json)" ayuda="Puede tardar unos segundos con muchos movimientos.">
           <Entrada name="archivo" type="file" accept=".json,application/json" required />
         </Campo>
         <BotonGuardar texto="Importar" />

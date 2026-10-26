@@ -10,6 +10,7 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
     { href: "/clientes", texto: "Clientes" },
     { href: "/cuentas", texto: "Cuentas" },
   ];
+  if (usuario.rol !== "ejecutivo") enlaces.push({ href: "/revision", texto: "Revisión" });
   if (usuario.rol === "admin") {
     enlaces.push(
       { href: "/empresas", texto: "Empresas" },

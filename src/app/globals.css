@@ -8,3 +8,11 @@
 body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+/* Colores de los gráficos (paleta validada para daltonismo). */
+:root {
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --favor: #2a78d6;
+  --cobrar: #e34948;
+}

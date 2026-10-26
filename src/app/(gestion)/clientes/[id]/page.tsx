@@ -5,6 +5,11 @@ import { clientes, ejecutivos, subcuentas, usuarios } from "@/db/schema";
 import { Encabezado, EstadoActivo, FilaVacia, Insignia, Tabla, Tarjeta, Td, Th } from "@/components/ui";
 import { requerirUsuario } from "@/lib/auth";
 import { filtroClientes, filtroSubcuentas, puedeEditarClientes } from "@/lib/alcance";
+import { saldosSubcuentas } from "@/lib/datos";
+import { fechaCorta, importe } from "@/lib/dinero";
+import { BarrasDivergentes } from "@/components/graficos";
+import { Indicador } from "@/components/indicadores";
+import Link from "next/link";
 import { FormularioCliente, FormularioSubcuenta } from "../formularios";
 
 export const metadata = { title: "Cliente" };
@@ -30,7 +35,8 @@ export default async function PaginaCliente({ params }: PageProps<"/clientes/[id
   if (!cliente) notFound();
 
   const editable = puedeEditarClientes(usuario);
-  const [listaSubcuentas, listaEjecutivos, accesos] = await Promise.all([
+  const [saldos, listaSubcuentas, listaEjecutivos, accesos] = await Promise.all([
+    saldosSubcuentas(usuario, eq(subcuentas.clienteId, id)),
     db
       .select({
         id: subcuentas.id,
@@ -57,6 +63,11 @@ export default async function PaginaCliente({ params }: PageProps<"/clientes/[id
       : Promise.resolve([]),
   ]);
 
+  const saldoDe = new Map(saldos.map((x) => [x.id, x]));
+  const total = saldos.reduce((t, x) => t + x.saldo, 0);
+  const porCobrar = saldos.reduce((t, x) => t + Math.min(0, x.saldo), 0);
+  const aFavor = saldos.reduce((t, x) => t + Math.max(0, x.saldo), 0);
+
   return (
     <>
       <Encabezado
@@ -67,6 +78,28 @@ export default async function PaginaCliente({ params }: PageProps<"/clientes/[id
           </>
         }
       />
+
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <Indicador
+          titulo={total >= 0 ? "Saldo neto a favor del cliente" : "Saldo neto por cobrar"}
+          valor={`US$ ${importe(Math.abs(total))}`}
+          tono={total >= 0 ? "favor" : "cobrar"}
+        />
+        <Indicador titulo="Por cobrar" valor={importe(-porCobrar)} tono="cobrar" detalle="Suma de subcuentas en negativo" />
+        <Indicador titulo="A favor del cliente" valor={importe(aFavor)} tono="favor" detalle="Suma de subcuentas en positivo" />
+      </div>
+      {saldos.filter((x) => Math.abs(x.saldo) > 0.005).length > 1 && (
+        <Tarjeta className="mb-6 p-5">
+          <h2 className="mb-3 text-sm font-semibold">Saldo por subcuenta (US$)</h2>
+          <BarrasDivergentes
+            filas={saldos
+              .filter((x) => Math.abs(x.saldo) > 0.005)
+              .sort((a, b) => a.saldo - b.saldo)
+              .map((x) => ({ etiqueta: x.nombre, valor: x.saldo, href: `/subcuentas/${x.id}` }))}
+          />
+          <p className="mt-2 text-xs text-slate-500">Rojo: por cobrar · Azul: a favor del cliente</p>
+        </Tarjeta>
+      )}
 
       <section className="mb-8">
         <h2 className="mb-3 text-lg font-semibold">Subcuentas</h2>
@@ -79,29 +112,40 @@ export default async function PaginaCliente({ params }: PageProps<"/clientes/[id
             <tr>
               <Th>Subcuenta</Th>
               <Th>Ejecutivo</Th>
+              <Th className="text-right">Saldo US$</Th>
+              <Th>Último mov.</Th>
               <Th>Estado</Th>
             </tr>
           </thead>
           <tbody>
-            {listaSubcuentas.length === 0 && <FilaVacia columnas={3} texto="Sin subcuentas." />}
+            {listaSubcuentas.length === 0 && <FilaVacia columnas={5} texto="Sin subcuentas." />}
             {listaSubcuentas.map((s) => (
               <tr key={s.id}>
                 <Td>
-                  {editable ? (
-                    <details>
-                      <summary className="cursor-pointer font-medium">{s.nombre}</summary>
+                  <Link href={`/subcuentas/${s.id}`} className="font-medium hover:underline">
+                    {s.nombre}
+                  </Link>
+                  {editable && (
+                    <details className="mt-1">
+                      <summary className="cursor-pointer text-xs text-slate-500">Editar</summary>
                       <div className="mt-3 rounded-lg bg-slate-50 p-3">
                         <FormularioSubcuenta clienteId={cliente.id} subcuenta={s} ejecutivos={listaEjecutivos} />
                       </div>
                     </details>
-                  ) : (
-                    <span className="font-medium">{s.nombre}</span>
                   )}
                 </Td>
                 <Td>
                   {s.ejecutivo ?? (
                     <span className="text-slate-500">{cliente.ejecutivo ?? "—"} (del cliente)</span>
                   )}
+                </Td>
+                <Td
+                  className={`text-right tabular-nums ${(saldoDe.get(s.id)?.saldo ?? 0) < -0.005 ? "text-red-700" : (saldoDe.get(s.id)?.saldo ?? 0) > 0.005 ? "text-sky-700" : "text-slate-500"}`}
+                >
+                  {importe(saldoDe.get(s.id)?.saldo ?? 0)}
+                </Td>
+                <Td className="text-slate-500">
+                  {saldoDe.get(s.id)?.ultimo ? fechaCorta(saldoDe.get(s.id)!.ultimo!) : "—"}
                 </Td>
                 <Td>
                   <EstadoActivo activo={s.activa} />

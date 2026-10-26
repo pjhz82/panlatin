@@ -12,7 +12,7 @@ export async function importar(_prev: EstadoImportacion, formData: FormData): Pr
   const usuario = await requerirUsuario(["admin"]);
   const archivo = formData.get("archivo");
   if (!(archivo instanceof File) || archivo.size === 0) return { error: "Elige el archivo de catálogos." };
-  if (archivo.size > 2_000_000) return { error: "El archivo es demasiado grande (máximo 2 MB)." };
+  if (archivo.size > 5_000_000) return { error: "El archivo es demasiado grande (máximo 5 MB)." };
 
   let contenido: unknown;
   try {
@@ -23,7 +23,12 @@ export async function importar(_prev: EstadoImportacion, formData: FormData): Pr
   const datos = esquemaCatalogos.safeParse(contenido);
   if (!datos.success) return { error: "El archivo no tiene el formato de catálogos esperado." };
 
-  const resultado = await db.transaction((tx) => importarCatalogos(tx, datos.data));
+  let resultado: ResultadoImportacion;
+  try {
+    resultado = await db.transaction((tx) => importarCatalogos(tx, datos.data));
+  } catch (e) {
+    return { error: `No se importó nada: ${e instanceof Error ? e.message : "error inesperado"}` };
+  }
   await registrarAuditoria({
     usuarioId: usuario.id,
     accion: "crear",

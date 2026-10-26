@@ -39,7 +39,7 @@ export function esDuplicado(error: unknown): boolean {
 /** Nombre de usuario para entrar: minúsculas, sin espacios. */
 export const campoUsuario = z
   .string("Escribe el nombre de usuario.")
-  .min(3, "Mínimo 3 caracteres.")
+  .min(2, "Mínimo 2 caracteres.")
   .max(60)
   // Sin @ para que nunca coincida con el correo de otra persona al entrar.
   .regex(/^[a-zA-Z0-9._-]+$/, "Solo letras, números y . _ - (sin espacios ni @).")

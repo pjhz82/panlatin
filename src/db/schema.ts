@@ -1,8 +1,12 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
+  date,
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   serial,
@@ -114,6 +118,8 @@ export const usuarios = pgTable("usuarios", {
   /** Solo para rol cliente. */
   clienteId: integer("cliente_id").references(() => clientes.id),
   activo: boolean("activo").notNull().default(true),
+  /** Contraseña temporal: al entrar se le pide cambiarla. */
+  debeCambiarPassword: boolean("debe_cambiar_password").notNull().default(false),
   ultimoAcceso: timestamp("ultimo_acceso", { withTimezone: true }),
   creadoEn: creadoEn(),
 });
@@ -130,6 +136,54 @@ export const sesiones = pgTable(
     creadoEn: creadoEn(),
   },
   (t) => [index("sesiones_usuario_idx").on(t.usuarioId)],
+);
+
+/**
+ * Movimientos de un estado de cuenta: o de una subcuenta de cliente o de una
+ * cuenta de tesorería. Importe con signo: positivo = abono / entrada,
+ * negativo = cargo / salida. El saldo se calcula acumulando por fecha.
+ */
+export const movimientos = pgTable(
+  "movimientos",
+  {
+    id: serial("id").primaryKey(),
+    fecha: date("fecha").notNull(),
+    subcuentaId: integer("subcuenta_id").references(() => subcuentas.id),
+    cuentaId: integer("cuenta_id").references(() => cuentas.id),
+    concepto: text("concepto"),
+    detalle: text("detalle"),
+    formaPago: text("forma_pago"),
+    referencia: text("referencia"),
+    nota: text("nota"),
+    importe: numeric("importe", { precision: 24, scale: 6 }).notNull(),
+    /** "excel" si viene de la importación de los Excel; "manual" si se registró en la web. */
+    origen: text("origen").notNull().default("manual"),
+    creadoPor: integer("creado_por").references(() => usuarios.id),
+    creadoEn: creadoEn(),
+  },
+  (t) => [
+    index("movimientos_subcuenta_idx").on(t.subcuentaId, t.fecha, t.id),
+    index("movimientos_cuenta_idx").on(t.cuentaId, t.fecha, t.id),
+    check("movimientos_un_destino", sql`(${t.subcuentaId} is null) <> (${t.cuentaId} is null)`),
+  ],
+);
+
+/** Saldo que mostraba cada hoja de Excel al importarla, para revisar que cuadra. */
+export const referenciasExcel = pgTable(
+  "referencias_excel",
+  {
+    id: serial("id").primaryKey(),
+    subcuentaId: integer("subcuenta_id").references(() => subcuentas.id),
+    cuentaId: integer("cuenta_id").references(() => cuentas.id),
+    hoja: text("hoja").notNull(),
+    saldo: numeric("saldo", { precision: 24, scale: 6 }),
+    movimientos: integer("movimientos").notNull(),
+    cargadoEn: timestamp("cargado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("referencias_subcuenta_idx").on(t.subcuentaId),
+    uniqueIndex("referencias_cuenta_idx").on(t.cuentaId),
+  ],
 );
 
 /** Registro de quién hizo qué y cuándo. */
