@@ -36,7 +36,7 @@ Next.js 16 (App Router, Server Actions) · TypeScript · PostgreSQL · Drizzle O
 ```bash
 npm install
 cp .env.example .env          # y pon tu DATABASE_URL
-npm run db:migrar             # crea las tablas
+npm run db:migrar             # crea las tablas (solo base de datos local)
 npm run crear-admin -- tu@correo.com "Tu Nombre" "una-contraseña-larga"
 npm run dev                   # http://localhost:3000
 ```
@@ -51,6 +51,16 @@ El JSON contiene datos reales de la empresa (clientes, cuentas, wallets) y por
 eso vive en `datos/`, que **no se sube al repositorio**. Se puede ejecutar varias
 veces: lo que ya existe no se toca.
 
+## Publicación en Netlify
+
+El sitio `panlatin-tesoreria` usa **Netlify Database**: Netlify crea el
+PostgreSQL y aplica en cada publicación las migraciones de
+`netlify/database/migrations/` (nunca se aplican a mano en producción).
+
+Primer administrador: con la base vacía, abre `/instalar` e introduce la clave
+de la variable de entorno `INSTALACION_TOKEN`. En cuanto existe un usuario,
+esa página deja de funcionar.
+
 ## Scripts
 
 | Script | Para qué |
@@ -58,7 +68,7 @@ veces: lo que ya existe no se toca.
 | `npm run dev` | Servidor de desarrollo. |
 | `npm run build` / `npm start` | Compilar y servir en producción. |
 | `npm run db:generar` | Generar una migración tras cambiar `src/db/schema.ts`. |
-| `npm run db:migrar` | Aplicar migraciones pendientes. |
+| `npm run db:migrar` | Aplicar migraciones pendientes a la base local. |
 | `npm run db:studio` | Explorar la base de datos en el navegador. |
 | `npm run crear-admin` | Crear o reactivar un administrador. |
 | `npm run importar-catalogos` | Carga inicial de catálogos desde JSON. |
@@ -76,7 +86,7 @@ src/
   lib/               sesión, permisos/alcance, auditoría, formularios
   proxy.ts           redirige al login si no hay sesión
 scripts/             tareas de consola (admin, importación)
-drizzle/             migraciones SQL
+netlify/database/migrations/   migraciones SQL (Drizzle Kit)
 ```
 
 ## Seguridad

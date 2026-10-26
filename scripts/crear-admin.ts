@@ -19,7 +19,7 @@ async function main() {
     process.exit(1);
   }
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const db = drizzle(pool);
+  const db = drizzle({ client: pool });
   const passwordHash = await bcrypt.hash(password, 12);
   await db
     .insert(usuarios)

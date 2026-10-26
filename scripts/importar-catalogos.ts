@@ -41,7 +41,7 @@ async function main() {
   }
   const datos: Catalogos = JSON.parse(readFileSync(ruta, "utf8"));
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const db = drizzle(pool, { schema: s });
+  const db = drizzle({ client: pool, schema: s });
 
   await db.transaction(async (tx) => {
     await tx
