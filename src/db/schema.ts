@@ -33,6 +33,29 @@ export const moneda = pgEnum("moneda", ["BS", "USD", "USDT", "USDC"]);
 
 export const redBlockchain = pgEnum("red_blockchain", ["TRON", "ETH"]);
 
+export const tipoOperacion = pgEnum("tipo_operacion", [
+  "compra",
+  "venta",
+  "swap",
+  "liquidacion_usdt",
+  "prestamo",
+  "honorarios",
+  "comision",
+  "gasto",
+  "pago",
+  "cobro",
+  "traspaso",
+]);
+
+export const estadoOperacion = pgEnum("estado_operacion", [
+  "pendiente_firmas",
+  "aprobada",
+  "en_ejecucion",
+  "completada",
+  "rechazada",
+  "anulada",
+]);
+
 const creadoEn = () =>
   timestamp("creado_en", { withTimezone: true }).notNull().defaultNow();
 
@@ -158,14 +181,92 @@ export const movimientos = pgTable(
     importe: numeric("importe", { precision: 24, scale: 6 }).notNull(),
     /** "excel" si viene de la importación de los Excel; "manual" si se registró en la web. */
     origen: text("origen").notNull().default("manual"),
+    /** Partida de operación que generó el movimiento (si lo generó una). */
+    partidaId: integer("partida_id").references(() => partidas.id),
     creadoPor: integer("creado_por").references(() => usuarios.id),
     creadoEn: creadoEn(),
   },
   (t) => [
+    index("movimientos_partida_idx").on(t.partidaId),
     index("movimientos_subcuenta_idx").on(t.subcuentaId, t.fecha, t.id),
     index("movimientos_cuenta_idx").on(t.cuentaId, t.fecha, t.id),
     check("movimientos_un_destino", sql`(${t.subcuentaId} is null) <> (${t.cuentaId} is null)`),
   ],
+);
+
+/**
+ * Operación (compra, venta, swap…). La crea una operadora o un administrador,
+ * la firman dos ejecutivos y se ejecuta partida a partida.
+ */
+export const operaciones = pgTable(
+  "operaciones",
+  {
+    id: serial("id").primaryKey(),
+    tipo: tipoOperacion("tipo").notNull(),
+    estado: estadoOperacion("estado").notNull().default("pendiente_firmas"),
+    fecha: date("fecha").notNull(),
+    subcuentaId: integer("subcuenta_id").references(() => subcuentas.id),
+    descripcion: text("descripcion"),
+    /** Datos de referencia de la operación (no generan movimientos por sí solos). */
+    montoUsd: numeric("monto_usd", { precision: 24, scale: 6 }),
+    tasa: numeric("tasa", { precision: 24, scale: 6 }),
+    montoBs: numeric("monto_bs", { precision: 24, scale: 6 }),
+    /** Utilidad estimada de la operación en US$, para el reparto posterior. */
+    utilidad: numeric("utilidad", { precision: 24, scale: 6 }),
+    creadoPor: integer("creado_por")
+      .notNull()
+      .references(() => usuarios.id),
+    creadoEn: creadoEn(),
+    motivoCierre: text("motivo_cierre"),
+  },
+  (t) => [index("operaciones_estado_idx").on(t.estado, t.fecha), index("operaciones_subcuenta_idx").on(t.subcuentaId)],
+);
+
+/**
+ * Partida de una operación: un pago o un cobro. Al ejecutarla genera un
+ * movimiento en la cuenta de tesorería (importe en su moneda) y otro en el
+ * estado de cuenta del cliente (efecto en US$), si los tiene.
+ */
+export const partidas = pgTable(
+  "partidas",
+  {
+    id: serial("id").primaryKey(),
+    operacionId: integer("operacion_id")
+      .notNull()
+      .references(() => operaciones.id, { onDelete: "cascade" }),
+    orden: integer("orden").notNull(),
+    descripcion: text("descripcion").notNull(),
+    cuentaId: integer("cuenta_id").references(() => cuentas.id),
+    /** En la moneda de la cuenta. Positivo = entra; negativo = sale. */
+    importeCuenta: numeric("importe_cuenta", { precision: 24, scale: 6 }),
+    /** En US$. Positivo = abono al cliente; negativo = cargo. */
+    efectoCliente: numeric("efecto_cliente", { precision: 24, scale: 6 }),
+    ejecutadaEn: date("ejecutada_en"),
+    referencia: text("referencia"),
+    ejecutadaPor: integer("ejecutada_por").references(() => usuarios.id),
+  },
+  (t) => [index("partidas_operacion_idx").on(t.operacionId, t.orden)],
+);
+
+/** Firma de un ejecutivo sobre una operación (aprobación o rechazo). */
+export const firmas = pgTable(
+  "firmas",
+  {
+    id: serial("id").primaryKey(),
+    operacionId: integer("operacion_id")
+      .notNull()
+      .references(() => operaciones.id, { onDelete: "cascade" }),
+    ejecutivoId: integer("ejecutivo_id")
+      .notNull()
+      .references(() => ejecutivos.id),
+    usuarioId: integer("usuario_id")
+      .notNull()
+      .references(() => usuarios.id),
+    aprueba: boolean("aprueba").notNull(),
+    comentario: text("comentario"),
+    creadoEn: creadoEn(),
+  },
+  (t) => [uniqueIndex("firmas_operacion_ejecutivo_idx").on(t.operacionId, t.ejecutivoId)],
 );
 
 /** Saldo que mostraba cada hoja de Excel al importarla, para revisar que cuadra. */
@@ -211,3 +312,5 @@ export type Rol = (typeof rolUsuario.enumValues)[number];
 export type TipoCuenta = (typeof tipoCuenta.enumValues)[number];
 export type Moneda = (typeof moneda.enumValues)[number];
 export type Red = (typeof redBlockchain.enumValues)[number];
+export type TipoOperacion = (typeof tipoOperacion.enumValues)[number];
+export type EstadoOperacion = (typeof estadoOperacion.enumValues)[number];

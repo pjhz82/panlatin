@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { ejecutivos, movimientos } from "@/db/schema";
+import { ejecutivos, firmas, movimientos, operaciones } from "@/db/schema";
 import { BarrasDivergentes, GraficoBarras, GraficoLineas } from "@/components/graficos";
 import { Indicador, Seccion } from "@/components/indicadores";
 import { Encabezado, Tabla, Td, Th } from "@/components/ui";
@@ -17,7 +17,7 @@ const diasDesde = (fecha: string | null, hoy: string) =>
 
 export default async function PaginaInicio() {
   const usuario = await requerirUsuario(["admin", "ejecutivo", "operadora"]);
-  const [subs, ctas, evoUsd, evoCripto, revision, miEjecutivo, [futuros]] = await Promise.all([
+  const [subs, ctas, evoUsd, evoCripto, revision, miEjecutivo, [futuros], [pendientes]] = await Promise.all([
     saldosSubcuentas(usuario),
     saldosCuentas(),
     evolucionTesoreria(["USD"]),
@@ -30,6 +30,13 @@ export default async function PaginaInicio() {
       .select({ n: sql<number>`count(*)`.mapWith(Number) })
       .from(movimientos)
       .where(sql`${movimientos.fecha} > current_date`),
+    db
+      .select({
+        porFirmar: sql<number>`count(*) filter (where ${operaciones.estado} = 'pendiente_firmas' and not exists (
+          select 1 from ${firmas} where ${firmas.operacionId} = ${operaciones.id} and ${firmas.ejecutivoId} = ${usuario.ejecutivoId ?? -1}))`.mapWith(Number),
+        porEjecutar: sql<number>`count(*) filter (where ${operaciones.estado} in ('aprobada', 'en_ejecucion'))`.mapWith(Number),
+      })
+      .from(operaciones),
   ]);
 
   const hoy = new Date().toISOString().slice(0, 10);
@@ -68,6 +75,21 @@ export default async function PaginaInicio() {
         titulo={`Hola, ${usuario.nombre.split(" ")[0]}`}
         descripcion={`Posición del holding al ${fechaCorta(hoy)}. Importes en US$ salvo que se indique.`}
       />
+
+      {((usuario.ejecutivoId && pendientes.porFirmar > 0) || (usuario.rol !== "ejecutivo" && pendientes.porEjecutar > 0)) && (
+        <div className="mb-6 flex flex-wrap gap-3">
+          {usuario.ejecutivoId && pendientes.porFirmar > 0 && (
+            <Link href="/operaciones?ver=firmar" className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 hover:bg-amber-100">
+              <span className="font-semibold">{pendientes.porFirmar}</span> operaciones pendientes de tu firma →
+            </Link>
+          )}
+          {usuario.rol !== "ejecutivo" && pendientes.porEjecutar > 0 && (
+            <Link href="/operaciones?ver=ejecutar" className="rounded-lg border border-sky-300 bg-sky-50 px-4 py-3 text-sm text-sky-900 hover:bg-sky-100">
+              <span className="font-semibold">{pendientes.porEjecutar}</span> operaciones aprobadas por ejecutar →
+            </Link>
+          )}
+        </div>
+      )}
 
       {miCartera && (
         <div className="mb-6 grid gap-4 sm:grid-cols-3">

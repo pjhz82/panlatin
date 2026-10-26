@@ -7,6 +7,7 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
 
   const enlaces: EnlaceNav[] = [
     { href: "/", texto: "Inicio" },
+    { href: "/operaciones", texto: "Operaciones" },
     { href: "/clientes", texto: "Clientes" },
     { href: "/cuentas", texto: "Cuentas" },
   ];
