@@ -15,6 +15,7 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
       { href: "/empresas", texto: "Empresas" },
       { href: "/ejecutivos", texto: "Ejecutivos" },
       { href: "/usuarios", texto: "Usuarios" },
+      { href: "/importar", texto: "Importar" },
     );
   }
 

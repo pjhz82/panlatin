@@ -43,8 +43,11 @@ npm run dev                   # http://localhost:3000
 
 ### Carga inicial de catálogos
 
+En la web publicada: entra como administrador → **Importar** y sube el archivo
+de catálogos. En local:
+
 ```bash
-npm run importar-catalogos -- datos/catalogos.json
+npm run importar-catalogos -- datos/catalogos-tesoreria.json
 ```
 
 El JSON contiene datos reales de la empresa (clientes, cuentas, wallets) y por
