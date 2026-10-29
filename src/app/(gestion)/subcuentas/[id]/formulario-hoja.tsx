@@ -50,7 +50,7 @@ export function FormularioHoja({
         <Entrada name="referencia" placeholder="Referencia (opcional)" className="w-52" />
         <BotonGuardar texto="Registrar" />
         {estado.error && <span className="text-sm text-red-700">{estado.error}</span>}
-        {estado.ok && <span className="text-sm text-emerald-700">Registrado. Se aplicará cuando tenga las firmas necesarias.</span>}
+        {estado.ok && <span className="text-sm text-emerald-700">{estado.mensaje}</span>}
       </div>
     </Formulario>
   );

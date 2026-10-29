@@ -37,6 +37,13 @@ export const ESTADOS_OPERACION: Record<EstadoOperacion, { nombre: string; color:
 
 export const FIRMAS_REQUERIDAS = 2;
 
+/** Monedas cuyas salidas (transferencias de dólares) necesitan aprobación. */
+export const MONEDAS_CON_APROBACION: Moneda[] = ["USD", "USDT", "USDC"];
+
+/** Una partida es una transferencia de dólares si saca dinero de una cuenta en US$, USDT o USDC. */
+export const esSalidaDeDolares = (importeCuenta: number, moneda: Moneda | null) =>
+  importeCuenta < 0 && moneda !== null && MONEDAS_CON_APROBACION.includes(moneda);
+
 /** Tipos que necesitan cliente. */
 export const CON_CLIENTE: TipoOperacion[] = ["compra", "venta", "swap", "prestamo", "cobro", "pago"];
 

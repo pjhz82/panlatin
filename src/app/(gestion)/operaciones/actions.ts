@@ -10,7 +10,7 @@ import { ejecutivoDe } from "@/lib/alcance";
 import { requerirUsuario } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
 import type { EstadoFormulario } from "@/lib/formularios";
-import { ejecutarPartidaEnTx, firmaDelCreador } from "@/lib/ejecucion";
+import { ejecutarPartidaEnTx, firmaDelCreador, requiereAprobacion } from "@/lib/ejecucion";
 import { CON_CLIENTE, FIRMAS_REQUERIDAS } from "@/lib/operaciones";
 
 const numero = z.number().finite();
@@ -101,7 +101,12 @@ export async function crearOperacion(_prev: EstadoFormulario, formData: FormData
         efectoCliente: String(p.efectoCliente),
       })),
     );
-    await firmaDelCreador(tx, op.id, usuario);
+    // Solo las transferencias de dólares necesitan aprobación; el resto queda aprobado al crearse.
+    if (await requiereAprobacion(tx, o.partidas)) {
+      await firmaDelCreador(tx, op.id, usuario);
+    } else {
+      await tx.update(operaciones).set({ estado: "aprobada" }).where(eq(operaciones.id, op.id));
+    }
     return op.id;
   });
   await registrarAuditoria({ usuarioId: usuario.id, accion: "crear", entidad: "operacion", entidadId: id, detalle: o });

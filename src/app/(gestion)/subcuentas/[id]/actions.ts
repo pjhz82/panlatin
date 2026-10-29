@@ -8,7 +8,7 @@ import { cuentas, operaciones, partidas, subcuentas } from "@/db/schema";
 import { ejecutivoDe } from "@/lib/alcance";
 import { requerirUsuario } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
-import { firmaDelCreador } from "@/lib/ejecucion";
+import { ejecutarPartidaEnTx, firmaDelCreador, requiereAprobacion } from "@/lib/ejecucion";
 import { datosFormulario, type EstadoFormulario } from "@/lib/formularios";
 
 /** Acepta 1.234,56 o 1234.56 */
@@ -54,7 +54,7 @@ export async function registrarEnHoja(subcuentaId: number, _prev: EstadoFormular
     importeCuenta = c.moneda === "BS" ? Math.round(efecto * d.tasa * 100) / 100 : efecto;
   }
 
-  const id = await db.transaction(async (tx) => {
+  const { id, aplicada } = await db.transaction(async (tx) => {
     const [op] = await tx
       .insert(operaciones)
       .values({
@@ -69,8 +69,8 @@ export async function registrarEnHoja(subcuentaId: number, _prev: EstadoFormular
         ejecutarAlAprobar: true,
         ejecutivoId: await ejecutivoDe(subcuentaId),
       })
-      .returning({ id: operaciones.id });
-    await tx.insert(partidas).values({
+      .returning();
+    const [partida] = await tx.insert(partidas).values({
       operacionId: op.id,
       orden: 1,
       descripcion: d.concepto,
@@ -78,12 +78,25 @@ export async function registrarEnHoja(subcuentaId: number, _prev: EstadoFormular
       importeCuenta: String(importeCuenta),
       efectoCliente: String(efecto),
       referencia: d.referencia ?? null,
-    });
-    await firmaDelCreador(tx, op.id, usuario);
-    return op.id;
+    }).returning({ id: partidas.id });
+    // Solo una salida de dólares necesita aprobación; lo demás se aplica en el acto.
+    if (await requiereAprobacion(tx, [{ cuentaId: d.cuentaId ?? null, importeCuenta }])) {
+      await firmaDelCreador(tx, op.id, usuario);
+      return { id: op.id, aplicada: false };
+    }
+    await tx.update(operaciones).set({ estado: "aprobada" }).where(eq(operaciones.id, op.id));
+    op.estado = "aprobada";
+    const error = await ejecutarPartidaEnTx(tx, op, partida.id, { fecha: d.fecha, usuarioId: usuario.id });
+    if (error) throw new Error(error);
+    return { id: op.id, aplicada: true };
   });
   await registrarAuditoria({ usuarioId: usuario.id, accion: "crear", entidad: "operacion", entidadId: id, detalle: { desdeHoja: subcuentaId, ...d } });
   revalidatePath(`/subcuentas/${subcuentaId}`);
   revalidatePath("/operaciones");
-  return { ok: true };
+  return {
+    ok: true,
+    mensaje: aplicada
+      ? "Registrado y aplicado en la hoja."
+      : "Registrado. Es una transferencia de dólares: se aplicará cuando esté aprobada.",
+  };
 }

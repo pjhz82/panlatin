@@ -3,6 +3,8 @@ import { z } from "zod";
 /** Estado que devuelven las Server Actions de formularios a useActionState. */
 export type EstadoFormulario = {
   ok?: boolean;
+  /** Mensaje de éxito para mostrar al usuario. */
+  mensaje?: string;
   error?: string;
   errores?: Record<string, string>;
 };
