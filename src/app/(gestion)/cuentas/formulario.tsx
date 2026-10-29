@@ -18,6 +18,7 @@ type Cuenta = {
   numero: string | null;
   red: Red | null;
   direccion: string | null;
+  limiteInterbancario: string | null;
   activa: boolean;
 };
 
@@ -87,6 +88,16 @@ export function FormularioCuenta({
             {tipo === "banco" && (
               <Campo etiqueta="Nº de cuenta (últimos dígitos)" error={e.numero}>
                 <Entrada name="numero" defaultValue={cuenta?.numero ?? ""} placeholder="…1234" />
+              </Campo>
+            )}
+            {tipo === "banco" && (
+              <Campo etiqueta="Límite diario interbancario" error={e.limiteInterbancario} ayuda="En la moneda de la cuenta. Vacío: sin límite.">
+                <Entrada
+                  name="limiteInterbancario"
+                  inputMode="decimal"
+                  defaultValue={cuenta?.limiteInterbancario ? String(Number(cuenta.limiteInterbancario)) : ""}
+                  placeholder="2000000"
+                />
               </Campo>
             )}
           </div>

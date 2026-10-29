@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { cuentas, operaciones, partidas, subcuentas } from "@/db/schema";
+import { cuentas, operaciones, partidas, subcuentas, type Moneda } from "@/db/schema";
 import { ejecutivoDe } from "@/lib/alcance";
 import { requerirUsuario } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
@@ -46,12 +46,14 @@ export async function registrarEnHoja(subcuentaId: number, _prev: EstadoFormular
 
   const efecto = d.abono - d.cargo; // + abono / − cargo, en US$
   let importeCuenta = 0;
+  let moneda: Moneda | null = null;
   if (d.cuentaId) {
     const [c] = await db.select({ moneda: cuentas.moneda, activa: cuentas.activa }).from(cuentas).where(eq(cuentas.id, d.cuentaId));
     if (!c?.activa) return { error: "La cuenta elegida no existe o está inactiva." };
     if (c.moneda === "BS" && !d.tasa) return { error: "La forma de pago es en Bs.: pon la tasa." };
     // Si el cliente nos paga (abono), entra en la cuenta; si le pagamos (cargo), sale.
     importeCuenta = c.moneda === "BS" ? Math.round(efecto * d.tasa * 100) / 100 : efecto;
+    moneda = c.moneda;
   }
 
   const { id, aplicada } = await db.transaction(async (tx) => {
@@ -75,12 +77,13 @@ export async function registrarEnHoja(subcuentaId: number, _prev: EstadoFormular
       orden: 1,
       descripcion: d.concepto,
       cuentaId: d.cuentaId ?? null,
+      moneda,
       importeCuenta: String(importeCuenta),
       efectoCliente: String(efecto),
       referencia: d.referencia ?? null,
     }).returning({ id: partidas.id });
     // Solo una salida de dólares necesita aprobación; lo demás se aplica en el acto.
-    if (await requiereAprobacion(tx, [{ cuentaId: d.cuentaId ?? null, importeCuenta }])) {
+    if (await requiereAprobacion(tx, [{ cuentaId: d.cuentaId ?? null, importeCuenta, moneda }])) {
       await firmaDelCreador(tx, op.id, usuario);
       return { id: op.id, aplicada: false };
     }

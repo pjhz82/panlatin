@@ -49,6 +49,8 @@ export const tipoOperacion = pgEnum("tipo_operacion", [
   "traspaso",
 ]);
 
+export const estadoCambio = pgEnum("estado_cambio", ["pendiente", "aplicado", "rechazado", "retirado"]);
+
 export const estadoOperacion = pgEnum("estado_operacion", [
   "pendiente_firmas",
   "aprobada",
@@ -129,6 +131,8 @@ export const cuentas = pgTable(
     numero: text("numero"),
     red: redBlockchain("red"),
     direccion: text("direccion"),
+    /** Límite diario de transferencias a otros bancos, en la moneda de la cuenta. */
+    limiteInterbancario: numeric("limite_interbancario", { precision: 24, scale: 6 }),
     activa: boolean("activa").notNull().default(true),
     creadoEn: creadoEn(),
   },
@@ -191,11 +195,14 @@ export const movimientos = pgTable(
     origen: text("origen").notNull().default("manual"),
     /** Partida de operación que generó el movimiento (si lo generó una). */
     partidaId: integer("partida_id").references(() => partidas.id),
+    /** Pago reportado que generó el movimiento (banco) o que se llevó al balance (cliente). */
+    pagoId: integer("pago_id").references(() => pagos.id),
     creadoPor: integer("creado_por").references(() => usuarios.id),
     creadoEn: creadoEn(),
   },
   (t) => [
     index("movimientos_partida_idx").on(t.partidaId),
+    index("movimientos_pago_idx").on(t.pagoId),
     index("movimientos_subcuenta_idx").on(t.subcuentaId, t.fecha, t.id),
     index("movimientos_cuenta_idx").on(t.cuentaId, t.fecha, t.id),
     check("movimientos_un_destino", sql`(${t.subcuentaId} is null) <> (${t.cuentaId} is null)`),
@@ -256,16 +263,108 @@ export const partidas = pgTable(
       .references(() => operaciones.id, { onDelete: "cascade" }),
     orden: integer("orden").notNull(),
     descripcion: text("descripcion").notNull(),
+    /** Cuenta sugerida; la cuenta real de cada pago la pone la administradora al reportarlo. */
     cuentaId: integer("cuenta_id").references(() => cuentas.id),
-    /** En la moneda de la cuenta. Positivo = entra; negativo = sale. */
+    /** Moneda del pago o cobro instruido. Sin moneda: la partida no mueve banco (solo afecta al cliente). */
+    moneda: moneda("moneda"),
+    /** Importe instruido, en su moneda. Positivo = entra; negativo = sale. */
     importeCuenta: numeric("importe_cuenta", { precision: 24, scale: 6 }),
     /** En US$. Positivo = abono al cliente; negativo = cargo. */
     efectoCliente: numeric("efecto_cliente", { precision: 24, scale: 6 }),
+    /** A dónde se paga o de dónde se cobra: beneficiario, cuenta o wallet. */
+    destino: text("destino"),
+    /** Banco de destino, para saber si el pago es interbancario. */
+    bancoDestino: text("banco_destino"),
+    /** Aplicada de una vez (registros de la hoja y operaciones anteriores a los pagos por partes). */
     ejecutadaEn: date("ejecutada_en"),
     referencia: text("referencia"),
     ejecutadaPor: integer("ejecutada_por").references(() => usuarios.id),
+    /** Partida sin banco llevada al balance del cliente. */
+    clienteEn: date("cliente_en"),
+    clientePor: integer("cliente_por").references(() => usuarios.id),
+    /** Cerrada aunque lo pagado no coincida con lo instruido. */
+    cerradaEn: date("cerrada_en"),
+    cerradaNota: text("cerrada_nota"),
   },
   (t) => [index("partidas_operacion_idx").on(t.operacionId, t.orden)],
+);
+
+/**
+ * Pago enviado o recibido para una partida (puede haber varios: pagos por
+ * partes). Al reportarlo se mueve la cuenta; al llevarlo al balance, el cliente.
+ */
+export const pagos = pgTable(
+  "pagos",
+  {
+    id: serial("id").primaryKey(),
+    partidaId: integer("partida_id")
+      .notNull()
+      .references(() => partidas.id),
+    cuentaId: integer("cuenta_id")
+      .notNull()
+      .references(() => cuentas.id),
+    fecha: date("fecha").notNull(),
+    /** En la moneda de la cuenta. Positivo = entra; negativo = sale. */
+    importe: numeric("importe", { precision: 24, scale: 6 }).notNull(),
+    /** Parte del efecto en el cliente (US$) que corresponde a este pago. */
+    efectoCliente: numeric("efecto_cliente", { precision: 24, scale: 6 }).notNull().default("0"),
+    referencia: text("referencia"),
+    /** Transferencia a otro banco: cuenta para el límite diario. */
+    interbancario: boolean("interbancario").notNull().default(false),
+    nota: text("nota"),
+    reportadoPor: integer("reportado_por")
+      .notNull()
+      .references(() => usuarios.id),
+    reportadoEn: creadoEn(),
+    /** Llevado al balance del cliente (revisado). */
+    balanceEn: date("balance_en"),
+    balancePor: integer("balance_por").references(() => usuarios.id),
+  },
+  (t) => [index("pagos_partida_idx").on(t.partidaId), index("pagos_cuenta_fecha_idx").on(t.cuentaId, t.fecha)],
+);
+
+/** Cambio propuesto a una operación: se aplica cuando lo aprueban dos ejecutivos. */
+export const cambios = pgTable(
+  "cambios",
+  {
+    id: serial("id").primaryKey(),
+    operacionId: integer("operacion_id")
+      .notNull()
+      .references(() => operaciones.id, { onDelete: "cascade" }),
+    estado: estadoCambio("estado").notNull().default("pendiente"),
+    motivo: text("motivo").notNull(),
+    /** Cómo quedaría la operación: datos generales y partidas. */
+    propuesta: jsonb("propuesta").notNull(),
+    /** Cómo estaba al proponer el cambio, para comparar. */
+    anterior: jsonb("anterior").notNull(),
+    creadoPor: integer("creado_por")
+      .notNull()
+      .references(() => usuarios.id),
+    creadoEn: creadoEn(),
+    resueltoEn: timestamp("resuelto_en", { withTimezone: true }),
+    comentario: text("comentario"),
+  },
+  (t) => [index("cambios_operacion_idx").on(t.operacionId, t.estado)],
+);
+
+export const firmasCambio = pgTable(
+  "firmas_cambio",
+  {
+    id: serial("id").primaryKey(),
+    cambioId: integer("cambio_id")
+      .notNull()
+      .references(() => cambios.id, { onDelete: "cascade" }),
+    ejecutivoId: integer("ejecutivo_id")
+      .notNull()
+      .references(() => ejecutivos.id),
+    usuarioId: integer("usuario_id")
+      .notNull()
+      .references(() => usuarios.id),
+    aprueba: boolean("aprueba").notNull(),
+    comentario: text("comentario"),
+    creadoEn: creadoEn(),
+  },
+  (t) => [uniqueIndex("firmas_cambio_ejecutivo_idx").on(t.cambioId, t.ejecutivoId)],
 );
 
 /** Firma de un ejecutivo sobre una operación (aprobación o rechazo). */
@@ -362,3 +461,4 @@ export type Red = (typeof redBlockchain.enumValues)[number];
 export type TipoOperacion = (typeof tipoOperacion.enumValues)[number];
 export type RiesgoCliente = (typeof riesgoCliente.enumValues)[number];
 export type EstadoOperacion = (typeof estadoOperacion.enumValues)[number];
+export type EstadoCambio = (typeof estadoCambio.enumValues)[number];

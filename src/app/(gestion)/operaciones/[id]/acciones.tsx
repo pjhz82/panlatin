@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { BotonGuardar, Formulario } from "@/components/formulario";
 import { AreaTexto, Aviso, Boton, Entrada } from "@/components/ui";
 import { estadoInicial } from "@/lib/formularios";
-import { anularOperacion, ejecutarPartida, firmarOperacion } from "../actions";
+import { anularOperacion, firmarOperacion } from "../actions";
 
 export function FormularioFirma({ operacionId, ejecutivo }: { operacionId: number; ejecutivo: string }) {
   const [estado, accion] = useActionState(firmarOperacion.bind(null, operacionId), estadoInicial);
@@ -29,18 +29,6 @@ export function FormularioFirma({ operacionId, ejecutivo }: { operacionId: numbe
 function setValor(e: React.MouseEvent<HTMLButtonElement>, valor: string) {
   const oculto = e.currentTarget.form?.querySelector<HTMLInputElement>('input[type=hidden][name="aprueba"]');
   if (oculto) oculto.value = valor;
-}
-
-export function FormularioEjecutar({ partidaId, hoy }: { partidaId: number; hoy: string }) {
-  const [estado, accion] = useActionState(ejecutarPartida.bind(null, partidaId), estadoInicial);
-  return (
-    <Formulario accion={accion} estado={estado} className="flex flex-wrap items-center gap-2">
-      <Entrada type="date" name="fecha" defaultValue={hoy} className="w-40" required />
-      <Entrada name="referencia" placeholder="Referencia / hash" className="w-44" />
-      <BotonGuardar texto="Ejecutar" />
-      {estado.error && <span className="w-full text-xs text-red-700">{estado.error}</span>}
-    </Formulario>
-  );
 }
 
 export function FormularioAnular({ operacionId }: { operacionId: number }) {

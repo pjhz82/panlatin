@@ -37,6 +37,8 @@ export const ESTADOS_OPERACION: Record<EstadoOperacion, { nombre: string; color:
 
 export const FIRMAS_REQUERIDAS = 2;
 
+export const SIMBOLO: Record<Moneda, string> = { BS: "Bs.", USD: "US$", USDT: "USDT", USDC: "USDC" };
+
 /** Monedas cuyas salidas (transferencias de dólares) necesitan aprobación. */
 export const MONEDAS_CON_APROBACION: Moneda[] = ["USD", "USDT", "USDC"];
 
@@ -64,10 +66,18 @@ export type DatosGenerales = {
 };
 
 export type PartidaBorrador = {
+  /** Partida existente (al proponer un cambio). */
+  id?: number;
   descripcion: string;
+  /** Cuenta sugerida (opcional): la cuenta real la pone la administradora al reportar el pago. */
   cuentaId: number | null;
+  /** Moneda del pago o cobro; null si la partida no mueve banco. */
+  moneda: Moneda | null;
   importeCuenta: number;
   efectoCliente: number;
+  /** A dónde se paga o de dónde se cobra. */
+  destino?: string;
+  bancoDestino?: string;
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -79,55 +89,59 @@ export function proponerPartidas(d: DatosGenerales, monedaDe: (cuentaId: number 
   const comCliente = r2((M * d.comisionClientePct) / 100);
   const enMonedaDe = (cuentaId: number | null, usd: number) => (monedaDe(cuentaId) === "BS" ? r2(usd * (d.tasa || 0)) : r2(usd));
   const p: PartidaBorrador[] = [];
+  /** Moneda de la cuenta elegida o, sin cuenta, la habitual para ese lado. */
+  const m = (cuentaId: number | null, porDefecto: Moneda): Moneda => monedaDe(cuentaId) ?? porDefecto;
+  const push = (descripcion: string, cuentaId: number | null, moneda: Moneda | null, importeCuenta: number, efectoCliente: number) =>
+    p.push({ descripcion, cuentaId, moneda, importeCuenta, efectoCliente });
   const comisionCliente = () => {
-    if (comCliente > 0) p.push({ descripcion: "Comisión cobrada al cliente", cuentaId: null, importeCuenta: 0, efectoCliente: -comCliente });
+    if (comCliente > 0) push("Comisión cobrada al cliente", null, null, 0, -comCliente);
   };
 
   switch (d.tipo) {
     case "compra":
-      p.push({ descripcion: "Pago en Bs. por cuenta del cliente", cuentaId: d.cuentaBs, importeCuenta: -B, efectoCliente: -M });
+      push("Pago en Bs. por cuenta del cliente", d.cuentaBs, "BS", -B, -M);
       if (d.comisionBancoPct > 0)
-        p.push({ descripcion: "Comisión bancaria", cuentaId: d.cuentaBs, importeCuenta: -r2((B * d.comisionBancoPct) / 100), efectoCliente: 0 });
-      p.push({ descripcion: "Recibimos los US$ del cliente", cuentaId: d.cuentaUsd, importeCuenta: M, efectoCliente: M });
+        push("Comisión bancaria", d.cuentaBs, "BS", -r2((B * d.comisionBancoPct) / 100), 0);
+      push("Recibimos los US$ del cliente", d.cuentaUsd, m(d.cuentaUsd, "USD"), M, M);
       comisionCliente();
       break;
     case "venta":
-      p.push({ descripcion: "Cobro en Bs. del cliente", cuentaId: d.cuentaBs, importeCuenta: B, efectoCliente: M });
-      p.push({ descripcion: "Entregamos los US$ al cliente", cuentaId: d.cuentaUsd, importeCuenta: -M, efectoCliente: -M });
+      push("Cobro en Bs. del cliente", d.cuentaBs, "BS", B, M);
+      push("Entregamos los US$ al cliente", d.cuentaUsd, m(d.cuentaUsd, "USD"), -M, -M);
       if (d.costeLiquidacionPct > 0)
-        p.push({ descripcion: "Coste de liquidación", cuentaId: d.cuentaUsd, importeCuenta: -r2((M * d.costeLiquidacionPct) / 100), efectoCliente: 0 });
+        push("Coste de liquidación", d.cuentaUsd, m(d.cuentaUsd, "USD"), -r2((M * d.costeLiquidacionPct) / 100), 0);
       comisionCliente();
       break;
     case "swap": {
       const entregado = r2(M - comCliente);
-      p.push({ descripcion: "Recibimos del cliente", cuentaId: d.cuentaOrigen, importeCuenta: enMonedaDe(d.cuentaOrigen, M), efectoCliente: M });
-      p.push({ descripcion: "Entregamos al cliente", cuentaId: d.cuentaDestino, importeCuenta: -enMonedaDe(d.cuentaDestino, entregado), efectoCliente: -entregado });
-      if (comCliente > 0) p.push({ descripcion: "Comisión del swap", cuentaId: null, importeCuenta: 0, efectoCliente: -comCliente });
+      push("Recibimos del cliente", d.cuentaOrigen, m(d.cuentaOrigen, "USD"), enMonedaDe(d.cuentaOrigen, M), M);
+      push("Entregamos al cliente", d.cuentaDestino, m(d.cuentaDestino, "USD"), -enMonedaDe(d.cuentaDestino, entregado), -entregado);
+      if (comCliente > 0) push("Comisión del swap", null, null, 0, -comCliente);
       break;
     }
     case "liquidacion_usdt": {
       const neto = r2(M * (1 - d.costeLiquidacionPct / 100));
-      p.push({ descripcion: "Sale de la wallet", cuentaId: d.cuentaOrigen, importeCuenta: -M, efectoCliente: 0 });
-      p.push({ descripcion: "Entra en la cuenta", cuentaId: d.cuentaDestino, importeCuenta: enMonedaDe(d.cuentaDestino, neto), efectoCliente: 0 });
+      push("Sale de la wallet", d.cuentaOrigen, m(d.cuentaOrigen, "USDT"), -M, 0);
+      push("Entra en la cuenta", d.cuentaDestino, m(d.cuentaDestino, "USD"), enMonedaDe(d.cuentaDestino, neto), 0);
       break;
     }
     case "traspaso":
-      p.push({ descripcion: "Sale de la cuenta de origen", cuentaId: d.cuentaOrigen, importeCuenta: -enMonedaDe(d.cuentaOrigen, M), efectoCliente: 0 });
-      p.push({ descripcion: "Entra en la cuenta de destino", cuentaId: d.cuentaDestino, importeCuenta: enMonedaDe(d.cuentaDestino, M), efectoCliente: 0 });
+      push("Sale de la cuenta de origen", d.cuentaOrigen, m(d.cuentaOrigen, "USD"), -enMonedaDe(d.cuentaOrigen, M), 0);
+      push("Entra en la cuenta de destino", d.cuentaDestino, m(d.cuentaDestino, "USD"), enMonedaDe(d.cuentaDestino, M), 0);
       break;
     case "prestamo":
-      p.push({ descripcion: "Entregamos el préstamo", cuentaId: d.cuentaOrigen, importeCuenta: -enMonedaDe(d.cuentaOrigen, M), efectoCliente: -M });
+      push("Entregamos el préstamo", d.cuentaOrigen, m(d.cuentaOrigen, "USD"), -enMonedaDe(d.cuentaOrigen, M), -M);
       break;
     case "cobro":
-      p.push({ descripcion: "Cobro al cliente", cuentaId: d.cuentaDestino, importeCuenta: enMonedaDe(d.cuentaDestino, M), efectoCliente: M });
+      push("Cobro al cliente", d.cuentaDestino, m(d.cuentaDestino, "USD"), enMonedaDe(d.cuentaDestino, M), M);
       break;
     case "pago":
-      p.push({ descripcion: "Pago al cliente o por su cuenta", cuentaId: d.cuentaOrigen, importeCuenta: -enMonedaDe(d.cuentaOrigen, M), efectoCliente: -M });
+      push("Pago al cliente o por su cuenta", d.cuentaOrigen, m(d.cuentaOrigen, "USD"), -enMonedaDe(d.cuentaOrigen, M), -M);
       break;
     case "honorarios":
     case "comision":
     case "gasto":
-      p.push({ descripcion: TIPOS_OPERACION[d.tipo].nombre, cuentaId: d.cuentaOrigen, importeCuenta: -enMonedaDe(d.cuentaOrigen, M), efectoCliente: 0 });
+      push(TIPOS_OPERACION[d.tipo].nombre, d.cuentaOrigen, m(d.cuentaOrigen, "USD"), -enMonedaDe(d.cuentaOrigen, M), 0);
       break;
   }
   return p;
@@ -157,3 +171,59 @@ export function cuentasQuePide(tipo: TipoOperacion) {
     destino: ["swap", "liquidacion_usdt", "traspaso", "cobro"].includes(tipo),
   };
 }
+
+/** Diferencias menores que esto se consideran cero (redondeo de céntimos). */
+export const TOLERANCIA = 0.005;
+
+export type DatosAvance = {
+  moneda: Moneda | null;
+  importe: number;
+  efectoCliente: number;
+  /** Suma de los pagos reportados (con signo). */
+  pagado: number;
+  /** Efecto en el cliente de los pagos ya llevados al balance. */
+  enBalance: number;
+  pagosSinBalance: number;
+  ejecutadaEn: string | null;
+  clienteEn: string | null;
+  cerradaEn: string | null;
+};
+
+/**
+ * Cómo va una partida: lo pagado frente a lo instruido y lo que ya está en el
+ * balance del cliente. Las partidas aplicadas de una vez (registros de la hoja
+ * o anteriores a los pagos por partes) cuentan como pagadas y en balance.
+ */
+export function avancePartida(p: DatosAvance, conCliente: boolean) {
+  const aplicada = Boolean(p.ejecutadaEn);
+  const ladoBanco = p.moneda !== null && Math.abs(p.importe) > TOLERANCIA;
+  const ladoCliente = conCliente && Math.abs(p.efectoCliente) > TOLERANCIA;
+  const pagado = aplicada ? p.importe : p.pagado;
+  const completa = Math.abs(pagado) >= Math.abs(p.importe) - TOLERANCIA;
+  const pagada = !ladoBanco || aplicada || Boolean(p.cerradaEn) || completa;
+  const falta = pagada ? 0 : r2(p.importe - pagado);
+  const enBalance = !ladoCliente ? 0 : aplicada ? p.efectoCliente : ladoBanco ? p.enBalance : p.clienteEn ? p.efectoCliente : 0;
+  const balanceAlDia = !ladoCliente || aplicada || (ladoBanco ? p.pagosSinBalance === 0 : Boolean(p.clienteEn));
+  return {
+    ladoBanco,
+    ladoCliente,
+    pagado,
+    falta,
+    pagada,
+    /** Pagado de más (+) o de menos (−) respecto a lo instruido, en valor absoluto con signo. */
+    diferencia: ladoBanco && !aplicada ? r2(Math.abs(pagado) - Math.abs(p.importe)) : 0,
+    pct: ladoBanco && Math.abs(p.importe) > 0 ? Math.min(1, Math.abs(pagado) / Math.abs(p.importe)) : 1,
+    enBalance,
+    /** Lo que aún falta por llevar al balance del cliente (pagado o sin banco). */
+    pendienteBalance: ladoCliente && !balanceAlDia,
+    terminada: pagada && balanceAlDia,
+  };
+}
+
+/** Nombre del banco normalizado para comparar (sin tildes, mayúsculas ni espacios). */
+export const normalizarBanco = (b: string | null | undefined) =>
+  (b ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+
+/** Un pago es interbancario si el banco de destino es distinto del de nuestra cuenta (cuando se conocen los dos). */
+export const esInterbancario = (bancoCuenta: string | null | undefined, bancoDestino: string | null | undefined) =>
+  Boolean(normalizarBanco(bancoCuenta) && normalizarBanco(bancoDestino)) && normalizarBanco(bancoCuenta) !== normalizarBanco(bancoDestino);

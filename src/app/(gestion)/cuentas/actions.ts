@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { cuentas, moneda, redBlockchain, tipoCuenta } from "@/db/schema";
 import { requerirUsuario } from "@/lib/auth";
+import { leerImporte } from "@/lib/importes";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { datosFormulario, erroresDeZod, esDuplicado, type EstadoFormulario } from "@/lib/formularios";
 
@@ -20,6 +21,11 @@ const esquema = z
     numero: z.string().max(40).optional(),
     red: z.enum(redBlockchain.enumValues).optional(),
     direccion: z.string().max(120).optional(),
+    limiteInterbancario: z
+      .string()
+      .optional()
+      .transform((v) => (v ? leerImporte(v) : null))
+      .pipe(z.number().nonnegative("El límite no puede ser negativo.").nullable()),
     activa: z.literal("on").optional(),
   })
   .superRefine((c, ctx) => {
@@ -66,6 +72,7 @@ export async function guardarCuenta(
     numero: c.tipo === "banco" ? (c.numero ?? null) : null,
     red: esWallet ? c.red! : null,
     direccion: esWallet ? c.direccion! : null,
+    limiteInterbancario: c.tipo === "banco" && c.limiteInterbancario ? String(c.limiteInterbancario) : null,
     activa: esNueva || c.activa === "on",
   };
   try {

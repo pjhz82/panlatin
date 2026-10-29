@@ -5,9 +5,17 @@ import { requerirUsuario } from "@/lib/auth";
 export default async function LayoutGestion({ children }: LayoutProps<"/">) {
   const usuario = await requerirUsuario(["admin", "ejecutivo", "operadora"]);
 
+  const staff = usuario.rol !== "ejecutivo";
   const enlaces: EnlaceNav[] = [
     { href: "/", texto: "Inicio" },
-    { href: "/operaciones", texto: "Operaciones" },
+    { href: "/operaciones", texto: "1 · Instrucciones" },
+    ...(staff
+      ? [
+          { href: "/pagos", texto: "2 · Pagos" },
+          { href: "/cuadre", texto: "3 · Balance clientes" },
+          { href: "/administrativas", texto: "4 · Administrativas" },
+        ]
+      : []),
     { href: "/clientes", texto: "Clientes" },
     { href: "/cobranza", texto: "Cobranza" },
     { href: "/cuentas", texto: "Cuentas" },

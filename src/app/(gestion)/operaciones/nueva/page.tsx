@@ -1,25 +1,31 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { cuentas, subcuentas } from "@/db/schema";
+import { clientes, cuentas, subcuentas } from "@/db/schema";
+import { filtroSubcuentas } from "@/lib/alcance";
 import { Encabezado } from "@/components/ui";
 import { requerirUsuario } from "@/lib/auth";
 import { FormularioOperacion } from "./formulario";
 
-export const metadata = { title: "Nueva operación" };
+export const metadata = { title: "Nueva instrucción" };
 
 export default async function PaginaNuevaOperacion({ searchParams }: PageProps<"/operaciones/nueva">) {
-  const usuario = await requerirUsuario(["admin", "operadora"]);
+  const usuario = await requerirUsuario(["admin", "ejecutivo", "operadora"]);
   const [listaCuentas, listaSubcuentas] = await Promise.all([
     db
-      .select({ id: cuentas.id, nombre: cuentas.nombre, moneda: cuentas.moneda })
+      .select({ id: cuentas.id, nombre: cuentas.nombre, moneda: cuentas.moneda, entidad: cuentas.entidad })
       .from(cuentas)
       .where(eq(cuentas.activa, true))
       .orderBy(asc(cuentas.nombre)),
-    db.select({ nombre: subcuentas.nombre }).from(subcuentas).where(eq(subcuentas.activa, true)).orderBy(asc(subcuentas.nombre)),
+    db
+      .select({ nombre: subcuentas.nombre })
+      .from(subcuentas)
+      .innerJoin(clientes, eq(clientes.id, subcuentas.clienteId))
+      .where(and(eq(subcuentas.activa, true), filtroSubcuentas(usuario)))
+      .orderBy(asc(subcuentas.nombre)),
   ]);
   return (
     <>
-      <Encabezado titulo="Nueva operación" descripcion="Las partidas se calculan solas a partir de los datos; puedes ajustarlas." />
+      <Encabezado titulo="Nueva instrucción" descripcion="Cierra la operación y da las instrucciones de pago. Las partidas se calculan solas; puedes ajustarlas." />
       <FormularioOperacion
         cuentas={listaCuentas}
         subcuentas={listaSubcuentas.map((s) => s.nombre)}

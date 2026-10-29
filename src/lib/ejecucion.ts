@@ -3,6 +3,7 @@ import { and, count, eq, inArray, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as s from "@/db/schema";
 import { esSalidaDeDolares } from "./operaciones";
+import { recalcularEstado } from "./pagos";
 
 type Tx = Pick<NodePgDatabase<typeof s>, "select" | "insert" | "update" | "delete">;
 
@@ -78,70 +79,30 @@ export async function firmaDelCreador(
 /** ¿Alguna partida saca dólares de una cuenta? Solo esas operaciones necesitan aprobación. */
 export async function requiereAprobacion(
   tx: Tx,
-  lista: { cuentaId: number | null; importeCuenta: number | string | null }[],
+  lista: { cuentaId: number | null; importeCuenta: number | string | null; moneda?: s.Moneda | null }[],
 ): Promise<boolean> {
-  const ids = [...new Set(lista.map((p) => p.cuentaId).filter((x): x is number => x !== null))];
-  if (!ids.length) return false;
+  // La moneda instruida manda; sin ella, la de la cuenta.
+  const ids = [...new Set(lista.filter((p) => !p.moneda).map((p) => p.cuentaId).filter((x): x is number => x !== null))];
   const monedas = new Map(
-    (await tx.select({ id: s.cuentas.id, moneda: s.cuentas.moneda }).from(s.cuentas).where(inArray(s.cuentas.id, ids))).map((c) => [c.id, c.moneda]),
+    ids.length
+      ? (await tx.select({ id: s.cuentas.id, moneda: s.cuentas.moneda }).from(s.cuentas).where(inArray(s.cuentas.id, ids))).map((c) => [c.id, c.moneda])
+      : [],
   );
-  return lista.some((p) => p.cuentaId !== null && esSalidaDeDolares(Number(p.importeCuenta), monedas.get(p.cuentaId) ?? null));
-}
-
-/** Estado que corresponde a una operación aprobada según cuántas partidas lleva aplicadas. */
-async function estadoAprobado(tx: Tx, operacionId: number) {
-  const [{ total, aplicadas }] = await tx
-    .select({ total: count(), aplicadas: count(s.partidas.ejecutadaEn) })
-    .from(s.partidas)
-    .where(eq(s.partidas.operacionId, operacionId));
-  if (aplicadas === 0) return "aprobada" as const;
-  return aplicadas === total ? ("completada" as const) : ("en_ejecucion" as const);
+  return lista.some((p) =>
+    esSalidaDeDolares(Number(p.importeCuenta), p.moneda ?? (p.cuentaId !== null ? (monedas.get(p.cuentaId) ?? null) : null)),
+  );
 }
 
 /**
- * Tras corregir partidas: si ahora hay una transferencia de dólares sin
- * aplicar (o se cambió una), vuelve a pedir aprobación; si ya no la hay,
- * queda aprobada. `tocaDolares` indica si el cambio afectó a una salida de dólares.
- */
-export async function revisarAprobacion(tx: Tx, op: typeof s.operaciones.$inferSelect, tocaDolares: boolean) {
-  const pendientes = await tx
-    .select({ cuentaId: s.partidas.cuentaId, importeCuenta: s.partidas.importeCuenta })
-    .from(s.partidas)
-    .where(and(eq(s.partidas.operacionId, op.id), isNull(s.partidas.ejecutadaEn)));
-  const necesita = await requiereAprobacion(tx, pendientes);
-  let estado: typeof op.estado;
-  if (necesita && (tocaDolares || op.estado !== "pendiente_firmas")) {
-    // Lo aprobado cambió: se borran las firmas y firma de nuevo quien la cerró, si es ejecutivo.
-    await tx.delete(s.firmas).where(eq(s.firmas.operacionId, op.id));
-    const [autor] = await tx
-      .select({ id: s.usuarios.id, ejecutivoId: s.usuarios.ejecutivoId })
-      .from(s.usuarios)
-      .where(eq(s.usuarios.id, op.creadoPor));
-    if (autor) await firmaDelCreador(tx, op.id, autor);
-    estado = "pendiente_firmas";
-  } else if (necesita) {
-    estado = "pendiente_firmas";
-  } else {
-    estado = await estadoAprobado(tx, op.id);
-  }
-  await tx.update(s.operaciones).set({ estado }).where(eq(s.operaciones.id, op.id));
-  op.estado = estado;
-}
-
-/**
- * Corrige una partida ya aplicada: borra sus movimientos (cuenta y cliente)
- * y la deja pendiente de aplicar otra vez. Devuelve los movimientos borrados o un error.
+ * Deshace una partida aplicada de una vez (registro de la hoja o anterior a
+ * los pagos por partes): borra sus movimientos y la deja pendiente.
  */
 export async function revertirPartidaEnTx(tx: Tx, op: typeof s.operaciones.$inferSelect, partidaId: number) {
   const [p] = await tx.select().from(s.partidas).where(and(eq(s.partidas.id, partidaId), eq(s.partidas.operacionId, op.id)));
-  if (!p) return { error: "No existe la partida." };
-  if (!p.ejecutadaEn) return { error: "Esta partida no está aplicada." };
+  if (!p) return { error: "No existe la partida." } as const;
+  if (!p.ejecutadaEn) return { error: "Esta partida no está aplicada de una vez: revierte sus pagos." } as const;
   const borrados = await tx.delete(s.movimientos).where(eq(s.movimientos.partidaId, p.id)).returning();
   await tx.update(s.partidas).set({ ejecutadaEn: null, ejecutadaPor: null }).where(eq(s.partidas.id, p.id));
-  if (op.estado !== "pendiente_firmas") {
-    const estado = await estadoAprobado(tx, op.id);
-    await tx.update(s.operaciones).set({ estado }).where(eq(s.operaciones.id, op.id));
-    op.estado = estado;
-  }
-  return { partida: p, borrados };
+  await recalcularEstado(tx, op);
+  return { partida: p, borrados } as const;
 }

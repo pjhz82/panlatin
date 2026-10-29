@@ -13,18 +13,13 @@ import {
   TIPOS_OPERACION,
   type PartidaBorrador,
 } from "@/lib/operaciones";
+import { EditorPartidas, hayDolaresQueSalen, leerNumero, SIMBOLO, type CuentaOpcion } from "@/components/editor-partidas";
 import { crearOperacion } from "../actions";
 
-type Cuenta = { id: number; nombre: string; moneda: Moneda };
+type Cuenta = CuentaOpcion;
 
 const fmt = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const SIMBOLO: Record<Moneda, string> = { BS: "Bs.", USD: "US$", USDT: "USDT", USDC: "USDC" };
-const num = (v: string) => {
-  const n = Number(v.replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(n) ? n : 0;
-};
-/** Acepta 1.234,56 o 1234.56 */
-const leer = (v: string) => (v.includes(",") ? num(v) : Number(v) || 0);
+const leer = leerNumero;
 
 export function FormularioOperacion({
   cuentas,
@@ -76,22 +71,20 @@ export function FormularioOperacion({
   const pide = cuentasQuePide(tipo);
   const conCliente = CON_CLIENTE.includes(tipo);
 
-  const editar = (i: number, cambio: Partial<PartidaBorrador>) =>
-    setEditadas(lista.map((p, j) => (j === i ? { ...p, ...cambio } : p)));
 
   const resumen = useMemo(() => {
-    const porCuenta = new Map<number, number>();
+    const porMoneda = new Map<Moneda, number>();
     let cliente = 0;
     for (const p of lista) {
-      if (p.cuentaId) porCuenta.set(p.cuentaId, (porCuenta.get(p.cuentaId) ?? 0) + p.importeCuenta);
+      if (p.moneda && p.importeCuenta) porMoneda.set(p.moneda, (porMoneda.get(p.moneda) ?? 0) + p.importeCuenta);
       cliente += p.efectoCliente;
     }
-    return { porCuenta: [...porCuenta.entries()], cliente };
+    return { porMoneda: [...porMoneda.entries()], cliente };
   }, [lista]);
 
   const selectorCuenta = (valor: number | null, cambiar: (v: number | null) => void, monedas?: Moneda[]) => (
     <Selector value={valor ?? ""} onChange={(e) => cambiar(e.target.value ? Number(e.target.value) : null)}>
-      <option value="">Elige…</option>
+      <option value="">La elige la administradora</option>
       {cuentas
         .filter((c) => !monedas || monedas.includes(c.moneda))
         .map((c) => (
@@ -181,14 +174,14 @@ export function FormularioOperacion({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {pide.bs && <Campo etiqueta="Cuenta en Bs.">{selectorCuenta(cuentaBs, (v) => { setCuentaBs(v); setEditadas(null); }, ["BS"])}</Campo>}
+          {pide.bs && <Campo etiqueta="Cuenta en Bs. (opcional)">{selectorCuenta(cuentaBs, (v) => { setCuentaBs(v); setEditadas(null); }, ["BS"])}</Campo>}
           {pide.usd && (
-            <Campo etiqueta="Cuenta de los dólares (banco, wallet, caja…)">
+            <Campo etiqueta="Cuenta de los dólares (opcional)">
               {selectorCuenta(cuentaUsd, (v) => { setCuentaUsd(v); setEditadas(null); }, ["USD", "USDT", "USDC"])}
             </Campo>
           )}
-          {pide.origen && <Campo etiqueta="Cuenta de origen (sale)">{selectorCuenta(cuentaOrigen, (v) => { setCuentaOrigen(v); setEditadas(null); })}</Campo>}
-          {pide.destino && <Campo etiqueta="Cuenta de destino (entra)">{selectorCuenta(cuentaDestino, (v) => { setCuentaDestino(v); setEditadas(null); })}</Campo>}
+          {pide.origen && <Campo etiqueta="Cuenta de origen (opcional)">{selectorCuenta(cuentaOrigen, (v) => { setCuentaOrigen(v); setEditadas(null); })}</Campo>}
+          {pide.destino && <Campo etiqueta="Cuenta de destino (opcional)">{selectorCuenta(cuentaDestino, (v) => { setCuentaDestino(v); setEditadas(null); })}</Campo>}
         </div>
 
         <Campo etiqueta="Descripción / observaciones">
@@ -201,7 +194,7 @@ export function FormularioOperacion({
           <div>
             <h2 className="text-sm font-semibold">Partidas (pagos y cobros)</h2>
             <p className="text-xs text-slate-500">
-              Cuenta: + entra / − sale, en la moneda de la cuenta. Cliente: + abono / − cargo, en US$.
+              Las instrucciones de pago: qué se paga o cobra, en qué moneda y a dónde. La administradora reporta cada pago, aunque sea por partes.
             </p>
           </div>
           <div className="flex gap-2">
@@ -210,87 +203,23 @@ export function FormularioOperacion({
                 Volver a calcular
               </Boton>
             )}
-            <Boton
-              type="button"
-              variante="secundario"
-              onClick={() => setEditadas([...lista, { descripcion: "", cuentaId: null, importeCuenta: 0, efectoCliente: 0 }])}
-            >
-              Añadir partida
-            </Boton>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="pb-2 pr-2">Descripción</th>
-                <th className="pb-2 pr-2">Cuenta</th>
-                <th className="pb-2 pr-2 text-right">Importe cuenta</th>
-                <th className="pb-2 pr-2 text-right">Efecto cliente US$</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((p, i) => (
-                <tr key={i} className="border-t border-slate-100">
-                  <td className="py-1.5 pr-2">
-                    <Entrada value={p.descripcion} onChange={(e) => editar(i, { descripcion: e.target.value })} />
-                  </td>
-                  <td className="py-1.5 pr-2">
-                    <Selector value={p.cuentaId ?? ""} onChange={(e) => editar(i, { cuentaId: e.target.value ? Number(e.target.value) : null })}>
-                      <option value="">— Sin cuenta —</option>
-                      {cuentas.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nombre} ({SIMBOLO[c.moneda]})
-                        </option>
-                      ))}
-                    </Selector>
-                  </td>
-                  <td className="w-40 py-1.5 pr-2">
-                    <Entrada
-                      key={`c-${i}-${p.importeCuenta}`}
-                      inputMode="decimal"
-                      defaultValue={p.importeCuenta || ""}
-                      onBlur={(e) => editar(i, { importeCuenta: leer(e.target.value) })}
-                      className="text-right"
-                    />
-                  </td>
-                  <td className="w-40 py-1.5 pr-2">
-                    <Entrada
-                      key={`e-${i}-${p.efectoCliente}`}
-                      inputMode="decimal"
-                      defaultValue={p.efectoCliente || ""}
-                      onBlur={(e) => editar(i, { efectoCliente: leer(e.target.value) })}
-                      className="text-right"
-                    />
-                  </td>
-                  <td className="py-1.5">
-                    <button type="button" className="text-xs text-red-700 underline" onClick={() => setEditadas(lista.filter((_, j) => j !== i))}>
-                      Quitar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <EditorPartidas lista={lista} cambiar={setEditadas} cuentas={cuentas} />
 
         <div className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4 text-sm sm:grid-cols-2">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Efecto en las cuentas</p>
-            {resumen.porCuenta.length === 0 && <p className="text-slate-500">—</p>}
-            {resumen.porCuenta.map(([id, v]) => {
-              const c = cuentas.find((x) => x.id === id);
-              return (
-                <p key={id} className="flex justify-between gap-2">
-                  <span>{c?.nombre}</span>
-                  <span className={`tabular-nums ${v < 0 ? "text-red-700" : "text-emerald-700"}`}>
-                    {v > 0 ? "+" : ""}
-                    {c ? SIMBOLO[c.moneda] : ""} {fmt.format(v)}
-                  </span>
-                </p>
-              );
-            })}
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Neto por moneda (+ entra / − sale)</p>
+            {resumen.porMoneda.length === 0 && <p className="text-slate-500">—</p>}
+            {resumen.porMoneda.map(([m, v]) => (
+              <p key={m} className="flex justify-between gap-2">
+                <span>{SIMBOLO[m]}</span>
+                <span className={`tabular-nums ${v < 0 ? "text-red-700" : "text-emerald-700"}`}>
+                  {v > 0 ? "+" : ""}
+                  {fmt.format(v)}
+                </span>
+              </p>
+            ))}
           </div>
           <div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Efecto neto en el cliente</p>
@@ -305,11 +234,13 @@ export function FormularioOperacion({
       </Tarjeta>
 
       <div className="flex items-center gap-3">
-        <BotonGuardar texto="Crear operación y pedir firmas" />
+        <BotonGuardar texto={hayDolaresQueSalen(lista) ? "Dar la instrucción y pedir aprobación" : "Dar la instrucción"} />
         <span className="text-xs text-slate-500">
-          {esEjecutivo
-            ? "Tu firma cuenta como aprobación: solo falta la de otro ejecutivo."
-            : "Quedará pendiente hasta que la firmen dos ejecutivos."}
+          {!hayDolaresQueSalen(lista)
+            ? "No saca dólares: pasa directo a la administradora para los pagos."
+            : esEjecutivo
+              ? "Saca dólares: tu firma cuenta como aprobación, falta la de otro ejecutivo."
+              : "Saca dólares: necesita la aprobación de dos ejecutivos antes de enviarse."}
         </span>
       </div>
     </Formulario>
