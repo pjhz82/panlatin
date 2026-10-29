@@ -10,6 +10,8 @@ import { fechaCorta, importe } from "@/lib/dinero";
 import { BarrasDivergentes } from "@/components/graficos";
 import { Indicador } from "@/components/indicadores";
 import Link from "next/link";
+import { RIESGOS } from "@/lib/riesgo";
+import { FormularioRiesgo } from "../formulario-riesgo";
 import { FormularioCliente, FormularioSubcuenta } from "../formularios";
 
 export const metadata = { title: "Cliente" };
@@ -26,6 +28,9 @@ export default async function PaginaCliente({ params }: PageProps<"/clientes/[id
       ejecutivoId: clientes.ejecutivoId,
       notas: clientes.notas,
       activo: clientes.activo,
+      riesgo: clientes.riesgo,
+      riesgoNota: clientes.riesgoNota,
+      diasCredito: clientes.diasCredito,
       ejecutivo: ejecutivos.codigo,
     })
     .from(clientes)
@@ -74,10 +79,27 @@ export default async function PaginaCliente({ params }: PageProps<"/clientes/[id
         titulo={cliente.nombre}
         descripcion={
           <>
-            Ejecutivo: {cliente.ejecutivo ?? "sin asignar"} · <EstadoActivo activo={cliente.activo} />
+            Ejecutivo: {cliente.ejecutivo ?? "sin asignar"} · <EstadoActivo activo={cliente.activo} />{" "}
+            <Insignia color={RIESGOS[cliente.riesgo].color}>{RIESGOS[cliente.riesgo].nombre}</Insignia>
+            {cliente.diasCredito !== null && <> · Plazo de pago: {cliente.diasCredito} días</>}
           </>
         }
       />
+
+      {editable && (
+        <Tarjeta className="mb-6 p-5">
+          <h2 className="mb-3 text-sm font-semibold">Riesgo de cobro y plazo de pago</h2>
+          <FormularioRiesgo
+            clienteId={cliente.id}
+            riesgo={cliente.riesgo}
+            riesgoNota={cliente.riesgoNota}
+            diasCredito={cliente.diasCredito}
+          />
+        </Tarjeta>
+      )}
+      {!editable && cliente.riesgoNota && (
+        <p className="mb-6 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Nota de riesgo: {cliente.riesgoNota}</p>
+      )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Indicador

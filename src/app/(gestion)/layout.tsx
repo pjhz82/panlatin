@@ -9,10 +9,15 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
     { href: "/", texto: "Inicio" },
     { href: "/operaciones", texto: "Operaciones" },
     { href: "/clientes", texto: "Clientes" },
+    { href: "/cobranza", texto: "Cobranza" },
     { href: "/cuentas", texto: "Cuentas" },
   ];
   if (usuario.rol !== "ejecutivo") {
-    enlaces.push({ href: "/balance", texto: "Balance" }, { href: "/revision", texto: "Revisión" });
+    enlaces.push(
+      { href: "/balance", texto: "Balance" },
+      { href: "/cierres", texto: "Cierres diarios" },
+      { href: "/revision", texto: "Revisión" },
+    );
   }
   if (usuario.rol === "admin") {
     enlaces.push(

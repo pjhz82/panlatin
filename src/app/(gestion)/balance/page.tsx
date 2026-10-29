@@ -1,13 +1,15 @@
 import Link from "next/link";
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import type { ReactNode } from "react";
 import { db } from "@/db";
-import { empresas } from "@/db/schema";
-import { Boton, Encabezado, Entrada, Selector, Tarjeta } from "@/components/ui";
+import { cierres, empresas } from "@/db/schema";
+import { Boton, BotonEnlace, Encabezado, Entrada, Selector, Tarjeta } from "@/components/ui";
 import { requerirUsuario } from "@/lib/auth";
-import { saldosCuentas, saldosSubcuentas, type SaldoCuenta } from "@/lib/datos";
+import { calcularBalance } from "@/lib/balance";
+import type { SaldoCuenta } from "@/lib/datos";
 import { fechaCorta, importe } from "@/lib/dinero";
 import { BotonImprimir } from "./imprimir";
+import { GuardarCierre } from "./guardar-cierre";
 
 export const metadata = { title: "Balance" };
 
@@ -70,40 +72,22 @@ export default async function PaginaBalance({ searchParams }: PageProps<"/balanc
   const tasa = Number(tasaTexto) > 0 ? Number(tasaTexto) : null;
   const empresaId = Number(p.empresa) || null;
 
-  const [todasCuentas, subs, listaEmpresas] = await Promise.all([
-    saldosCuentas(corte),
-    saldosSubcuentas(usuario, undefined, corte),
+  const [b, listaEmpresas, [cierre]] = await Promise.all([
+    calcularBalance({ usuario, corte, tasa, empresaId }),
     db.select({ id: empresas.id, nombre: empresas.nombre }).from(empresas).orderBy(asc(empresas.nombre)),
+    db.select({ creadoEn: cierres.creadoEn, tipo: cierres.tipo }).from(cierres).where(eq(cierres.fecha, corte)).limit(1),
   ]);
-  // Con una empresa elegida: solo sus cuentas. Wallets, Binance y caja no tienen empresa y se excluyen.
-  const ctas = empresaId ? todasCuentas.filter((c) => c.empresaId === empresaId) : todasCuentas;
   const conSaldo = (lista: SaldoCuenta[]) => lista.filter((c) => Math.abs(c.saldo) > 0.005);
-  const total = (lista: SaldoCuenta[]) => lista.reduce((t, c) => t + c.saldo, 0);
-
-  const bancosUsd = ctas.filter((c) => c.tipo === "banco" && c.moneda === "USD");
-  const bancosBs = ctas.filter((c) => c.tipo === "banco" && c.moneda === "BS");
-  const cajas = ctas.filter((c) => c.tipo === "caja");
-  const wallets = ctas.filter((c) => c.tipo === "wallet");
-  const exchanges = ctas.filter((c) => c.tipo === "exchange");
-
-  const totalBs = total(bancosBs);
-  const bsEnUsd = tasa ? totalBs / tasa : 0;
-  const disponible = total(bancosUsd) + total(cajas) + total(wallets) + total(exchanges) + bsEnUsd;
-  // Las cuentas de clientes son del holding, no de una empresa concreta.
-  const deudores = empresaId ? [] : subs.filter((s) => s.saldo < -0.005).sort((a, b) => a.saldo - b.saldo);
-  const acreedores = empresaId ? [] : subs.filter((s) => s.saldo > 0.005).sort((a, b) => b.saldo - a.saldo);
-  const porCobrar = -deudores.reduce((t, s) => t + s.saldo, 0);
-  const porPagar = acreedores.reduce((t, s) => t + s.saldo, 0);
-  const activo = disponible + porCobrar;
+  const { total, totalBs, bsEnUsd, disponible, deudores, acreedores, porCobrar, porPagar, activo, patrimonio } = b;
+  const { bancosUsd, bancosBs, cajas, wallets, exchanges } = b.grupos;
   const pasivo = porPagar;
-  const patrimonio = activo - pasivo;
 
   const partes = [
     { nombre: "Bancos US$", valor: total(bancosUsd) },
     { nombre: "Bancos Bs. (en US$)", valor: bsEnUsd },
     { nombre: "Caja", valor: total(cajas) },
     { nombre: "Wallets y Binance", valor: total(wallets) + total(exchanges) },
-    { nombre: "Por cobrar a clientes", valor: porCobrar },
+    { nombre: "Por cobrar a clientes (neto)", valor: porCobrar - b.provisionIncobrables },
   ].map((x, i) => ({ ...x, color: COMPOSICION[i] }));
   const positivas = partes.filter((x) => x.valor > 0);
   const sumaPositivas = positivas.reduce((t, x) => t + x.valor, 0);
@@ -119,7 +103,14 @@ export default async function PaginaBalance({ searchParams }: PageProps<"/balanc
       <Encabezado
         titulo="Hoja de balance"
         descripcion={`${empresa ?? "Holding consolidado"} · al ${fechaCorta(corte)} · importes en US$ (USDT y USDC 1:1)`}
-        acciones={<BotonImprimir />}
+        acciones={
+          <>
+            <BotonEnlace href="/cierres" variante="secundario">
+              Cierres diarios
+            </BotonEnlace>
+            <BotonImprimir />
+          </>
+        }
       />
 
       <form className="mb-6 flex flex-wrap items-end gap-3 print:hidden">
@@ -146,6 +137,12 @@ export default async function PaginaBalance({ searchParams }: PageProps<"/balanc
           Calcular
         </Boton>
       </form>
+
+      {!empresaId && (
+        <div className="mb-4 print:hidden">
+          <GuardarCierre corte={corte} tasa={tasaTexto} existe={cierre ? `${cierre.tipo === "manual" ? "Guardado" : "Calculado"} el ${fechaCorta(cierre.creadoEn.toISOString().slice(0, 10))}` : null} />
+        </div>
+      )}
 
       {!tasa && totalBs !== 0 && (
         <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 print:hidden">
@@ -192,6 +189,23 @@ export default async function PaginaBalance({ searchParams }: PageProps<"/balanc
                       <Fila nivel={2} concepto={`Otras ${deudores.length - 10} subcuentas`} valor={-deudores.slice(10).reduce((t, s) => t + s.saldo, 0)} />
                     )}
                   </>
+                )}
+                {!empresaId && b.provisionIncobrables > 0 && (
+                  <Fila
+                    nivel={0}
+                    fuerte
+                    concepto="(−) Provisión por incobrables"
+                    valor={-b.provisionIncobrables}
+                    detalle={`${b.incobrables.length} subcuentas marcadas como incobrables`}
+                    href="/cobranza?riesgo=incobrable"
+                  />
+                )}
+                {!empresaId && b.altoRiesgo > 0 && (
+                  <tr>
+                    <td colSpan={2} className="py-1 pl-4 text-xs text-amber-800">
+                      De lo que hay por cobrar, {importe(b.altoRiesgo)} es de clientes con alta probabilidad de impago.
+                    </td>
+                  </tr>
                 )}
                 <Fila nivel={0} fuerte concepto="TOTAL ACTIVO" valor={activo} />
               </Bloque>

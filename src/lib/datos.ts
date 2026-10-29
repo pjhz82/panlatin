@@ -1,7 +1,17 @@
 import "server-only";
 import { and, asc, desc, eq, gte, inArray, lte, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
-import { clientes, cuentas, empresas, ejecutivos, movimientos, referenciasExcel, subcuentas, type Moneda } from "@/db/schema";
+import {
+  clientes,
+  cuentas,
+  empresas,
+  ejecutivos,
+  movimientos,
+  referenciasExcel,
+  subcuentas,
+  type Moneda,
+  type RiesgoCliente,
+} from "@/db/schema";
 import type { UsuarioActual } from "./auth";
 import { ejecutivoDeSubcuenta, filtroSubcuentas } from "./alcance";
 
@@ -15,6 +25,7 @@ export type SaldoSubcuenta = {
   nombre: string;
   clienteId: number;
   cliente: string;
+  riesgo: RiesgoCliente;
   ejecutivo: string | null;
   saldo: number;
   movimientos: number;
@@ -35,6 +46,7 @@ export async function saldosSubcuentas(
       nombre: subcuentas.nombre,
       clienteId: clientes.id,
       cliente: clientes.nombre,
+      riesgo: clientes.riesgo,
       ejecutivo: ejecutivoEfectivo,
       saldo: suma,
       movimientos: sql<number>`count(${movimientos.id})`.mapWith(Number),

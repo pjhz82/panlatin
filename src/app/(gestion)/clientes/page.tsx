@@ -2,7 +2,9 @@ import Link from "next/link";
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { ejecutivos } from "@/db/schema";
-import { Boton, BotonEnlace, Encabezado, Entrada, FilaVacia, Selector, Tabla, Td, Th } from "@/components/ui";
+import { Boton, BotonEnlace, Encabezado, Entrada, FilaVacia, Insignia, Selector, Tabla, Td, Th } from "@/components/ui";
+import type { RiesgoCliente } from "@/db/schema";
+import { RIESGOS } from "@/lib/riesgo";
 import { requerirUsuario } from "@/lib/auth";
 import { puedeEditarClientes } from "@/lib/alcance";
 import { saldosSubcuentas } from "@/lib/datos";
@@ -25,10 +27,10 @@ export default async function PaginaClientes({ searchParams }: PageProps<"/clien
   ]);
 
   // Agrupar subcuentas visibles por cliente.
-  const porCliente = new Map<number, { id: number; nombre: string; ejecutivos: Set<string>; subcuentas: number; saldo: number; ultimo: string | null; coincide: boolean }>();
+  const porCliente = new Map<number, { id: number; nombre: string; riesgo: RiesgoCliente; ejecutivos: Set<string>; subcuentas: number; saldo: number; ultimo: string | null; coincide: boolean }>();
   for (const s of subs) {
     if (ejecutivo && s.ejecutivo !== ejecutivo) continue;
-    const c = porCliente.get(s.clienteId) ?? { id: s.clienteId, nombre: s.cliente, ejecutivos: new Set(), subcuentas: 0, saldo: 0, ultimo: null, coincide: false };
+    const c = porCliente.get(s.clienteId) ?? { id: s.clienteId, nombre: s.cliente, riesgo: s.riesgo, ejecutivos: new Set(), subcuentas: 0, saldo: 0, ultimo: null, coincide: false };
     c.subcuentas++;
     c.saldo += s.saldo;
     if (s.ejecutivo) c.ejecutivos.add(s.ejecutivo);
@@ -99,6 +101,11 @@ export default async function PaginaClientes({ searchParams }: PageProps<"/clien
                 <Link href={`/clientes/${c.id}`} className="font-medium hover:underline">
                   {c.nombre}
                 </Link>
+                {c.riesgo !== "normal" && (
+                  <span className="ml-2">
+                    <Insignia color={RIESGOS[c.riesgo].color}>{RIESGOS[c.riesgo].nombre}</Insignia>
+                  </span>
+                )}
               </Td>
               <Td>{[...c.ejecutivos].join(", ") || "—"}</Td>
               <Td className="text-right tabular-nums">{c.subcuentas}</Td>

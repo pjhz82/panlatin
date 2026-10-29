@@ -33,6 +33,8 @@ export const moneda = pgEnum("moneda", ["BS", "USD", "USDT", "USDC"]);
 
 export const redBlockchain = pgEnum("red_blockchain", ["TRON", "ETH"]);
 
+export const riesgoCliente = pgEnum("riesgo_cliente", ["normal", "alto_riesgo", "incobrable"]);
+
 export const tipoOperacion = pgEnum("tipo_operacion", [
   "compra",
   "venta",
@@ -84,6 +86,12 @@ export const clientes = pgTable("clientes", {
   ejecutivoId: integer("ejecutivo_id").references(() => ejecutivos.id),
   notas: text("notas"),
   activo: boolean("activo").notNull().default(true),
+  /** Riesgo de cobro. Los incobrables se provisionan en el balance. */
+  riesgo: riesgoCliente("riesgo").notNull().default("normal"),
+  riesgoNota: text("riesgo_nota"),
+  riesgoActualizado: timestamp("riesgo_actualizado", { withTimezone: true }),
+  /** Plazo de pago en días desde que la cuenta queda en deuda. Sin valor: sin plazo pactado. */
+  diasCredito: integer("dias_credito"),
   creadoEn: creadoEn(),
 });
 
@@ -281,6 +289,33 @@ export const firmas = pgTable(
   (t) => [uniqueIndex("firmas_operacion_ejecutivo_idx").on(t.operacionId, t.ejecutivoId)],
 );
 
+/**
+ * Cierre diario del balance: foto guardada del balance del holding a una
+ * fecha, con la tasa usada, para consultar la evolución y la ganancia diaria.
+ */
+export const cierres = pgTable("cierres", {
+  id: serial("id").primaryKey(),
+  fecha: date("fecha").notNull().unique(),
+  tasa: numeric("tasa", { precision: 24, scale: 6 }),
+  /** Bancos US$, caja, wallets y exchanges (US$). */
+  disponibleUsd: numeric("disponible_usd", { precision: 24, scale: 6 }).notNull(),
+  /** Bancos en bolívares (Bs.) y su equivalente en US$ con la tasa. */
+  bancosBs: numeric("bancos_bs", { precision: 24, scale: 6 }).notNull(),
+  bsEnUsd: numeric("bs_en_usd", { precision: 24, scale: 6 }).notNull(),
+  porCobrar: numeric("por_cobrar", { precision: 24, scale: 6 }).notNull(),
+  /** Por cobrar a clientes incobrables (se resta del activo). */
+  provisionIncobrables: numeric("provision_incobrables", { precision: 24, scale: 6 }).notNull(),
+  porPagar: numeric("por_pagar", { precision: 24, scale: 6 }).notNull(),
+  patrimonio: numeric("patrimonio", { precision: 24, scale: 6 }).notNull(),
+  /** Saldos por cuenta y otros datos del momento del cierre. */
+  detalle: jsonb("detalle"),
+  notas: text("notas"),
+  /** "manual" (botón Guardar cierre) o "calculado" (generado para días pasados). */
+  tipo: text("tipo").notNull().default("manual"),
+  creadoPor: integer("creado_por").references(() => usuarios.id),
+  creadoEn: creadoEn(),
+});
+
 /** Saldo que mostraba cada hoja de Excel al importarla, para revisar que cuadra. */
 export const referenciasExcel = pgTable(
   "referencias_excel",
@@ -325,4 +360,5 @@ export type TipoCuenta = (typeof tipoCuenta.enumValues)[number];
 export type Moneda = (typeof moneda.enumValues)[number];
 export type Red = (typeof redBlockchain.enumValues)[number];
 export type TipoOperacion = (typeof tipoOperacion.enumValues)[number];
+export type RiesgoCliente = (typeof riesgoCliente.enumValues)[number];
 export type EstadoOperacion = (typeof estadoOperacion.enumValues)[number];
