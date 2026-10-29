@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { cuentas, operaciones, partidas, subcuentas } from "@/db/schema";
 import { requerirUsuario } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
+import { firmaDelCreador } from "@/lib/ejecucion";
 import { datosFormulario, type EstadoFormulario } from "@/lib/formularios";
 
 /** Acepta 1.234,56 o 1234.56 */
@@ -76,6 +77,7 @@ export async function registrarEnHoja(subcuentaId: number, _prev: EstadoFormular
       efectoCliente: String(efecto),
       referencia: d.referencia ?? null,
     });
+    await firmaDelCreador(tx, op.id, usuario);
     return op.id;
   });
   await registrarAuditoria({ usuarioId: usuario.id, accion: "crear", entidad: "operacion", entidadId: id, detalle: { desdeHoja: subcuentaId, ...d } });

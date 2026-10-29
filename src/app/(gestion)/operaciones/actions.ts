@@ -9,7 +9,7 @@ import { cuentas, estadoOperacion, firmas, operaciones, partidas, subcuentas, ti
 import { requerirUsuario } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
 import type { EstadoFormulario } from "@/lib/formularios";
-import { ejecutarPartidaEnTx } from "@/lib/ejecucion";
+import { ejecutarPartidaEnTx, firmaDelCreador } from "@/lib/ejecucion";
 import { CON_CLIENTE, FIRMAS_REQUERIDAS } from "@/lib/operaciones";
 
 const numero = z.number().finite();
@@ -99,6 +99,7 @@ export async function crearOperacion(_prev: EstadoFormulario, formData: FormData
         efectoCliente: String(p.efectoCliente),
       })),
     );
+    await firmaDelCreador(tx, op.id, usuario);
     return op.id;
   });
   await registrarAuditoria({ usuarioId: usuario.id, accion: "crear", entidad: "operacion", entidadId: id, detalle: o });

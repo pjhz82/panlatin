@@ -53,3 +53,22 @@ export async function ejecutarPartidaEnTx(
   op.estado = estado;
   return null;
 }
+
+/**
+ * Si quien monta la operación es un ejecutivo, su firma cuenta como
+ * aprobación: solo falta la de otro ejecutivo.
+ */
+export async function firmaDelCreador(
+  tx: Tx,
+  operacionId: number,
+  usuario: { id: number; ejecutivoId: number | null },
+) {
+  if (!usuario.ejecutivoId) return;
+  await tx.insert(s.firmas).values({
+    operacionId,
+    ejecutivoId: usuario.ejecutivoId,
+    usuarioId: usuario.id,
+    aprueba: true,
+    comentario: "Montada por este ejecutivo",
+  });
+}

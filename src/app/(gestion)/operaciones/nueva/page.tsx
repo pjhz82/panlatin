@@ -8,7 +8,7 @@ import { FormularioOperacion } from "./formulario";
 export const metadata = { title: "Nueva operación" };
 
 export default async function PaginaNuevaOperacion({ searchParams }: PageProps<"/operaciones/nueva">) {
-  await requerirUsuario(["admin", "operadora"]);
+  const usuario = await requerirUsuario(["admin", "operadora"]);
   const [listaCuentas, listaSubcuentas] = await Promise.all([
     db
       .select({ id: cuentas.id, nombre: cuentas.nombre, moneda: cuentas.moneda })
@@ -24,6 +24,7 @@ export default async function PaginaNuevaOperacion({ searchParams }: PageProps<"
         cuentas={listaCuentas}
         subcuentas={listaSubcuentas.map((s) => s.nombre)}
         hoy={new Date().toISOString().slice(0, 10)}
+        esEjecutivo={Boolean(usuario.ejecutivoId)}
         subcuentaInicial={typeof (await searchParams).subcuenta === "string" ? String((await searchParams).subcuenta) : ""}
       />
     </>

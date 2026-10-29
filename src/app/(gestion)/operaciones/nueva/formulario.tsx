@@ -31,11 +31,14 @@ export function FormularioOperacion({
   subcuentas,
   hoy,
   subcuentaInicial = "",
+  esEjecutivo = false,
 }: {
   cuentas: Cuenta[];
   subcuentas: string[];
   hoy: string;
   subcuentaInicial?: string;
+  /** Quien monta la operación es un ejecutivo: su firma ya cuenta. */
+  esEjecutivo?: boolean;
 }) {
   const [estado, accion] = useActionState(crearOperacion, estadoInicial);
   const [tipo, setTipo] = useState<TipoOperacion>("compra");
@@ -303,7 +306,11 @@ export function FormularioOperacion({
 
       <div className="flex items-center gap-3">
         <BotonGuardar texto="Crear operación y pedir firmas" />
-        <span className="text-xs text-slate-500">Quedará pendiente hasta que la firmen dos ejecutivos.</span>
+        <span className="text-xs text-slate-500">
+          {esEjecutivo
+            ? "Tu firma cuenta como aprobación: solo falta la de otro ejecutivo."
+            : "Quedará pendiente hasta que la firmen dos ejecutivos."}
+        </span>
       </div>
     </Formulario>
   );
