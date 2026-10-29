@@ -1,0 +1,1 @@
+ALTER TABLE "pagos" ADD COLUMN "comision_banco" numeric(24,6) DEFAULT '0' NOT NULL;

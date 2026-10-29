@@ -90,6 +90,7 @@ export async function pagosReportados(desde: string, extra?: ReturnType<typeof a
       efectoCliente: pagos.efectoCliente,
       referencia: pagos.referencia,
       interbancario: pagos.interbancario,
+      comisionBanco: pagos.comisionBanco,
       balanceEn: pagos.balanceEn,
       cuenta: cuentas.nombre,
       moneda: cuentas.moneda,

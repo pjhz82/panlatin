@@ -6,7 +6,8 @@ import { redirect } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { cambios, cuentas, operaciones, partidas } from "@/db/schema";
+import { cambios, cuentas, operaciones, pagos, partidas } from "@/db/schema";
+import { guardarComprobante, leerArchivo } from "@/lib/comprobantes";
 import { requerirUsuario, type UsuarioActual } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { fotoOperacion, firmarCambioEnTx, validarCambio } from "@/lib/cambios";
@@ -60,20 +61,53 @@ export async function reportarPago(partidaId: number, _prev: EstadoFormulario, f
   if (!Number.isInteger(cuentaId) || cuentaId <= 0) return { error: "Elige la cuenta de la que salió o a la que entró." };
   const monto = leerImporte(String(fd.get("monto") ?? ""));
   if (!(monto > 0)) return { error: "Pon el monto del pago (sin signo)." };
+  const comisionBanco = Math.abs(leerImporte(String(fd.get("comisionBanco") ?? "")));
   const datos = {
     cuentaId,
     fecha: f.data,
     monto,
+    comisionBanco,
     referencia: texto(fd, "referencia", 200),
     interbancario: fd.get("interbancario") === "on",
     nota: texto(fd, "nota", 500),
     usuarioId: usuario.id,
   };
+  const comprobante = leerArchivo(fd.get("comprobante"));
+  if ("error" in comprobante) return { error: comprobante.error };
   const aviso = datos.interbancario ? await avisoLimite(cuentaId, datos.fecha, monto) : null;
   return paso(
-    () => db.transaction((tx) => reportarPagoEnTx(tx, partidaId, datos)),
+    () =>
+      db.transaction(async (tx) => {
+        const r = await reportarPagoEnTx(tx, partidaId, datos);
+        if ("pagoId" in r && comprobante.archivo) await guardarComprobante(tx, r.pagoId, comprobante.archivo, usuario.id);
+        return r;
+      }),
     (r) => ({ usuario, entidadId: r.operacionId, detalle: { reportaPago: r.pagoId, partidaId, ...datos } }),
     aviso ? `Pago reportado. ${aviso}` : "Pago reportado.",
+  );
+}
+
+/** Adjunta un comprobante a un pago ya reportado. */
+export async function adjuntarComprobante(pagoId: number, _prev: EstadoFormulario, fd: FormData): Promise<EstadoFormulario> {
+  const usuario = await requerirUsuario(["admin", "operadora"]);
+  const comprobante = leerArchivo(fd.get("comprobante"));
+  if ("error" in comprobante) return { error: comprobante.error };
+  if (!comprobante.archivo) return { error: "Elige el archivo del comprobante." };
+  const archivo = comprobante.archivo;
+  return paso(
+    () =>
+      db.transaction(async (tx) => {
+        const [fila] = await tx
+          .select({ operacionId: partidas.operacionId })
+          .from(pagos)
+          .innerJoin(partidas, eq(partidas.id, pagos.partidaId))
+          .where(eq(pagos.id, pagoId));
+        if (!fila) return { error: "No existe el pago." } as const;
+        await guardarComprobante(tx, pagoId, archivo, usuario.id);
+        return { operacionId: fila.operacionId } as const;
+      }),
+    (r) => ({ usuario, entidadId: r.operacionId, detalle: { adjuntaComprobante: pagoId, nombre: archivo.name } }),
+    "Comprobante adjuntado.",
   );
 }
 

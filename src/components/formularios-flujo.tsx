@@ -11,6 +11,7 @@ import { estadoInicial, type EstadoFormulario } from "@/lib/formularios";
 import { leerImporte } from "@/lib/importes";
 import { esInterbancario, type PartidaBorrador } from "@/lib/operaciones";
 import {
+  adjuntarComprobante,
   cerrarPartida,
   crearAdministrativa,
   firmarCambio,
@@ -85,12 +86,20 @@ export function FormularioPago({
         <Entrada name="monto" inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} className="w-36 text-right" required />
       </label>
       <label className="text-xs text-slate-500">
+        Comisión banco
+        <Entrada name="comisionBanco" inputMode="decimal" placeholder="0" className="w-28 text-right" />
+      </label>
+      <label className="text-xs text-slate-500">
         Fecha
         <Entrada type="date" name="fecha" defaultValue={hoy} className="w-40" required />
       </label>
       <label className="text-xs text-slate-500">
         Referencia / hash
         <Entrada name="referencia" className="w-40" />
+      </label>
+      <label className="text-xs text-slate-500">
+        Comprobante (foto o PDF)
+        <input type="file" name="comprobante" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" className="block w-56 text-xs" />
       </label>
       {sale && (
         <label className="flex items-center gap-1.5 pb-2 text-xs text-slate-600">
@@ -102,6 +111,21 @@ export function FormularioPago({
       {pasa && <span className="w-full text-xs font-medium text-amber-700">Pasa el límite interbancario de hoy de esta cuenta.</span>}
       <Resultado estado={estado} />
     </Formulario>
+  );
+}
+
+/** Adjuntar un comprobante a un pago ya reportado. */
+export function FormularioAdjuntar({ pagoId }: { pagoId: number }) {
+  const [estado, accion] = useActionState(adjuntarComprobante.bind(null, pagoId), estadoInicial);
+  return (
+    <details className="text-xs">
+      <summary className="cursor-pointer text-slate-600 underline">Adjuntar comprobante</summary>
+      <Formulario accion={accion} estado={estado} reiniciarTrasExito className="mt-2 flex flex-wrap items-center gap-2">
+        <input type="file" name="comprobante" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" required className="text-xs" />
+        <BotonGuardar texto="Subir" />
+        <Resultado estado={estado} />
+      </Formulario>
+    </details>
   );
 }
 

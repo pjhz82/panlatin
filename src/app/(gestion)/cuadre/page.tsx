@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { isNotNull } from "drizzle-orm";
+import { ListaComprobantes } from "@/components/comprobantes";
 import { FormularioAlBalance, FormularioRevertir } from "@/components/formularios-flujo";
+import { comprobantesDe } from "@/lib/comprobantes";
 import { Encabezado, FilaVacia, Tabla, Td, Th } from "@/components/ui";
 import { pagos } from "@/db/schema";
 import { SIMBOLO } from "@/lib/operaciones";
@@ -14,6 +16,8 @@ export default async function PaginaCuadre() {
   await requerirUsuario(["admin", "operadora"]);
   const hace7 = haceDias(7);
   const [{ porPago, sinBanco }, llevados] = await Promise.all([pendientesDeBalance(), pagosReportados(hace7, isNotNull(pagos.balanceEn))]);
+
+  const listaComprobantes = await comprobantesDe(porPago.map((p) => p.id));
 
   return (
     <>
@@ -57,6 +61,7 @@ export default async function PaginaCuadre() {
                   {p.cuenta}
                   {p.referencia && ` · ref. ${p.referencia}`} · reportó {p.reporto}
                 </span>
+                <ListaComprobantes lista={listaComprobantes.filter((c) => c.pagoId === p.id)} base="/comprobantes" />
               </Td>
               <Td className={`whitespace-nowrap text-right tabular-nums ${Number(p.importe) < 0 ? "text-red-700" : "text-emerald-700"}`}>
                 {SIMBOLO[p.moneda]} {importe(p.importe)}

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { BarraAvance } from "@/components/avance";
-import { FormularioPago, FormularioRevertir } from "@/components/formularios-flujo";
+import { ListaComprobantes } from "@/components/comprobantes";
+import { FormularioAdjuntar, FormularioPago, FormularioRevertir } from "@/components/formularios-flujo";
+import { comprobantesDe } from "@/lib/comprobantes";
 import { Encabezado, Insignia, Tabla, Tarjeta, Td, Th } from "@/components/ui";
 import { VerDatosPagoBs } from "@/components/campos-pago-bs";
 import { requerirUsuario } from "@/lib/auth";
@@ -16,6 +18,7 @@ export default async function PaginaPagos() {
   const hoy = new Date().toISOString().slice(0, 10);
   const hace7 = haceDias(7);
   const [pendientes, { cuentas, limites }, recientes] = await Promise.all([pendientesDePago(), cuentasParaPagos(hoy), pagosReportados(hace7)]);
+  const listaComprobantes = await comprobantesDe(recientes.map((r) => r.id));
   const porEnviar = pendientes.filter((p) => p.partida.importe < 0);
   const porRecibir = pendientes.filter((p) => p.partida.importe > 0);
 
@@ -152,14 +155,23 @@ export default async function PaginaPagos() {
                 <Td>
                   {r.cuenta}
                   {r.interbancario && <span className="block text-xs text-slate-500">Interbancario</span>}
+                  {Number(r.comisionBanco) > 0 && <span className="block text-xs text-slate-500">Comisión banco {importe(r.comisionBanco)}</span>}
                 </Td>
                 <Td className={`whitespace-nowrap text-right tabular-nums ${Number(r.importe) < 0 ? "text-red-700" : "text-emerald-700"}`}>
                   {SIMBOLO[r.moneda]} {importe(r.importe)}
                 </Td>
-                <Td className="text-xs">{r.referencia ?? "—"}</Td>
+                <Td className="text-xs">
+                  {r.referencia ?? "—"}
+                  <div>
+                    <ListaComprobantes lista={listaComprobantes.filter((c) => c.pagoId === r.id)} base="/comprobantes" />
+                  </div>
+                </Td>
                 <Td>{r.balanceEn ? <Insignia color="verde">En balance</Insignia> : Number(r.efectoCliente) ? <Insignia color="ambar">Falta</Insignia> : "—"}</Td>
                 <Td>
-                  <FormularioRevertir tipo="pago" id={r.id} />
+                  <div className="space-y-1">
+                    <FormularioAdjuntar pagoId={r.id} />
+                    <FormularioRevertir tipo="pago" id={r.id} />
+                  </div>
                 </Td>
               </tr>
             ))}

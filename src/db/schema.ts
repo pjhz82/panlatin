@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  bytea,
   check,
   date,
   index,
@@ -316,6 +317,8 @@ export const pagos = pgTable(
     referencia: text("referencia"),
     /** Transferencia a otro banco: cuenta para el límite diario. */
     interbancario: boolean("interbancario").notNull().default(false),
+    /** Comisión que cobró el banco por este pago (positiva, en la moneda de la cuenta). La pone la administradora. */
+    comisionBanco: numeric("comision_banco", { precision: 24, scale: 6 }).notNull().default("0"),
     nota: text("nota"),
     reportadoPor: integer("reportado_por")
       .notNull()
@@ -326,6 +329,26 @@ export const pagos = pgTable(
     balancePor: integer("balance_por").references(() => usuarios.id),
   },
   (t) => [index("pagos_partida_idx").on(t.partidaId), index("pagos_cuenta_fecha_idx").on(t.cuentaId, t.fecha)],
+);
+
+/** Comprobante de un pago (foto o PDF). Se guarda en la base de datos; máx. 5 MB. */
+export const comprobantes = pgTable(
+  "comprobantes",
+  {
+    id: serial("id").primaryKey(),
+    pagoId: integer("pago_id")
+      .notNull()
+      .references(() => pagos.id, { onDelete: "cascade" }),
+    nombre: text("nombre").notNull(),
+    tipo: text("tipo").notNull(),
+    tamano: integer("tamano").notNull(),
+    datos: bytea("datos").notNull(),
+    subidoPor: integer("subido_por")
+      .notNull()
+      .references(() => usuarios.id),
+    subidoEn: creadoEn(),
+  },
+  (t) => [index("comprobantes_pago_idx").on(t.pagoId)],
 );
 
 /** Cambio propuesto a una operación: se aplica cuando lo aprueban dos ejecutivos. */

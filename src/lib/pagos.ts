@@ -86,7 +86,17 @@ const detalleMovimiento = (op: Operacion) => [op.descripcion, `Op. ${op.id}`].fi
 export async function reportarPagoEnTx(
   tx: Tx,
   partidaId: number,
-  datos: { cuentaId: number; fecha: string; monto: number; referencia: string | null; interbancario: boolean; nota: string | null; usuarioId: number },
+  datos: {
+    cuentaId: number;
+    fecha: string;
+    monto: number;
+    /** Lo que cobró el banco por el pago (positivo); sale de la misma cuenta. */
+    comisionBanco: number;
+    referencia: string | null;
+    interbancario: boolean;
+    nota: string | null;
+    usuarioId: number;
+  },
 ): Promise<{ error: string } | { pagoId: number; operacionId: number }> {
   const [fila] = await tx
     .select({ p: s.partidas, op: s.operaciones })
@@ -134,6 +144,7 @@ export async function reportarPagoEnTx(
       efectoCliente: String(efecto),
       referencia: datos.referencia,
       interbancario: importe < 0 && datos.interbancario,
+      comisionBanco: String(datos.comisionBanco),
       nota: datos.nota,
       reportadoPor: datos.usuarioId,
     })
@@ -151,6 +162,20 @@ export async function reportarPagoEnTx(
     pagoId: pago.id,
     creadoPor: datos.usuarioId,
   });
+  if (datos.comisionBanco > 0) {
+    await tx.insert(s.movimientos).values({
+      fecha: datos.fecha,
+      cuentaId: cuenta.id,
+      concepto: "Comisión bancaria",
+      detalle: [p.descripcion, detalleMovimiento(op)].join(" · "),
+      referencia: datos.referencia,
+      importe: String(-datos.comisionBanco),
+      origen: "operacion",
+      partidaId: p.id,
+      pagoId: pago.id,
+      creadoPor: datos.usuarioId,
+    });
+  }
   await recalcularEstado(tx, op);
   return { pagoId: pago.id, operacionId: op.id };
 }

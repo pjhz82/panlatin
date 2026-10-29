@@ -3,6 +3,8 @@ import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { operaciones, pagos } from "@/db/schema";
 import { BarraAvance } from "@/components/avance";
+import { ListaComprobantes } from "@/components/comprobantes";
+import { comprobantesDe } from "@/lib/comprobantes";
 import { Encabezado, Insignia, Tarjeta } from "@/components/ui";
 import { destinoResumido, type DatosPagoBs } from "@/lib/bancos-ve";
 import { fechaCorta, importe } from "@/lib/dinero";
@@ -16,7 +18,18 @@ import { avanceParaCliente, NOMBRE_PARA_CLIENTE } from "@/lib/vista-cliente";
  * ni utilidad. En el enlace público (`publico`) los datos bancarios van
  * resumidos.
  */
-export async function SeguimientoCliente({ o, publico, volver }: { o: OperacionConAvance; publico: boolean; volver?: ReactNode }) {
+export async function SeguimientoCliente({
+  o,
+  publico,
+  volver,
+  baseComprobantes,
+}: {
+  o: OperacionConAvance;
+  publico: boolean;
+  volver?: ReactNode;
+  /** Ruta que sirve los comprobantes para este visitante. */
+  baseComprobantes: string;
+}) {
   const v = avanceParaCliente(o.estado, o.partidas);
   const [[{ creadoEn }], listaPagos] = await Promise.all([
     db.select({ creadoEn: operaciones.creadoEn }).from(operaciones).where(eq(operaciones.id, o.id)),
@@ -29,6 +42,7 @@ export async function SeguimientoCliente({ o, publico, volver }: { o: OperacionC
       : Promise.resolve([]),
   ]);
 
+  const listaComprobantes = await comprobantesDe(listaPagos.map((x) => x.id));
   const pasos = [
     { titulo: "Operación cerrada", hecho: true, detalle: fechaCorta(creadoEn) },
     ...(v.recibido !== null ? [{ titulo: "Recibimos tu pago", hecho: v.recibido >= 0.995, detalle: `${Math.round(v.recibido * 100)} %` }] : []),
@@ -98,7 +112,8 @@ export async function SeguimientoCliente({ o, publico, volver }: { o: OperacionC
                               <span className="tabular-nums">
                                 {sim} {importe(Math.abs(Number(x.importe)))}
                               </span>
-                              {x.referencia && <span className="text-slate-500"> · ref. {x.referencia}</span>}
+                              {x.referencia && <span className="text-slate-500"> · ref. {x.referencia}</span>}{" "}
+                              <ListaComprobantes lista={listaComprobantes.filter((c) => c.pagoId === x.id)} base={baseComprobantes} />
                             </span>
                             <span className={`text-xs ${x.balanceEn ? "text-emerald-700" : "text-slate-500"}`}>
                               {x.balanceEn ? "✓ en tu estado de cuenta" : "Por aplicar a tu estado de cuenta"}

@@ -8,12 +8,14 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
   const staff = usuario.rol !== "ejecutivo";
   const enlaces: EnlaceNav[] = [
     { href: "/", texto: "Inicio" },
+    { href: "/tracking", texto: "Tracking" },
     { href: "/operaciones", texto: "1 · Instrucciones" },
     ...(staff
       ? [
           { href: "/pagos", texto: "2 · Pagos" },
           { href: "/cuadre", texto: "3 · Balance clientes" },
           { href: "/administrativas", texto: "4 · Administrativas" },
+          { href: "/comisiones", texto: "Comisiones" },
         ]
       : []),
     { href: "/clientes", texto: "Clientes" },

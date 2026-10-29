@@ -42,7 +42,6 @@ export function FormularioOperacion({
   const [descripcion, setDescripcion] = useState("");
   const [montoUsd, setMontoUsd] = useState("");
   const [tasa, setTasa] = useState("");
-  const [comBanco, setComBanco] = useState("0.3");
   const [comCliente, setComCliente] = useState("0");
   const [costeLiq, setCosteLiq] = useState("0");
   const [cuentaBs, setCuentaBs] = useState<number | null>(null);
@@ -57,7 +56,8 @@ export function FormularioOperacion({
     tipo,
     montoUsd: leer(montoUsd),
     tasa: leer(tasa),
-    comisionBancoPct: leer(comBanco),
+    // La comisión bancaria la pone la administradora al reportar cada pago.
+    comisionBancoPct: 0,
     comisionClientePct: leer(comCliente),
     costeLiquidacionPct: leer(costeLiq),
     cuentaBs,
@@ -156,11 +156,6 @@ export function FormularioOperacion({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          {(tipo === "compra") && (
-            <Campo etiqueta="% comisión bancaria (sobre Bs.)">
-              <Entrada inputMode="decimal" value={comBanco} onChange={(e) => { setComBanco(e.target.value); setEditadas(null); }} />
-            </Campo>
-          )}
           {(tipo === "compra" || tipo === "venta" || tipo === "swap") && (
             <Campo etiqueta={tipo === "swap" ? "% del swap" : "% comisión al cliente"}>
               <Entrada inputMode="decimal" value={comCliente} onChange={(e) => { setComCliente(e.target.value); setEditadas(null); setUtilidadManual(null); }} />

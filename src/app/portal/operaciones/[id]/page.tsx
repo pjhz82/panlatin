@@ -17,6 +17,7 @@ export default async function PaginaMiOperacion({ params }: PageProps<"/portal/o
     <SeguimientoCliente
       o={o}
       publico={false}
+      baseComprobantes="/portal/comprobantes"
       volver={
         <Link href="/portal/operaciones" className="underline">
           ← Mis operaciones

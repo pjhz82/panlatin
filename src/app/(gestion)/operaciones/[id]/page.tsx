@@ -6,8 +6,10 @@ import { asc, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { cambios, cuentas, ejecutivos, firmas, firmasCambio, operaciones, pagos, subcuentas, usuarios } from "@/db/schema";
 import { BarraAvance } from "@/components/avance";
+import { ListaComprobantes } from "@/components/comprobantes";
 import {
   BotonRetirarCambio,
+  FormularioAdjuntar,
   EnlaceSeguimiento,
   FormularioAlBalance,
   FormularioCerrarPartida,
@@ -21,6 +23,7 @@ import { VerDatosPagoBs } from "@/components/campos-pago-bs";
 import { requerirUsuario } from "@/lib/auth";
 import type { DatosPagoBs } from "@/lib/bancos-ve";
 import { fechaCorta, importe } from "@/lib/dinero";
+import { comprobantesDe } from "@/lib/comprobantes";
 import { cuentasParaPagos } from "@/lib/flujo";
 import { ESTADOS_OPERACION, esSalidaDeDolares, FIRMAS_REQUERIDAS, TIPOS_OPERACION, SIMBOLO } from "@/lib/operaciones";
 import { partidasConAvance, resumenAvance } from "@/lib/pagos";
@@ -101,6 +104,7 @@ export default async function PaginaOperacion({ params }: PageProps<"/operacione
       : Promise.resolve([]),
   ]);
 
+  const listaComprobantes = await comprobantesDe(listaPagos.map((p) => p.pago.id));
   const r = resumenAvance(lista);
   const estado = ESTADOS_OPERACION[o.estado];
   const staff = usuario.rol !== "ejecutivo";
@@ -283,6 +287,12 @@ export default async function PaginaOperacion({ params }: PageProps<"/operacione
                                     </span>
                                     {pago.referencia && <span className="text-slate-500"> · ref. {pago.referencia}</span>}
                                     {pago.interbancario && <span className="text-slate-500"> · interbancario</span>}
+                                    {Number(pago.comisionBanco) > 0 && (
+                                      <span className="text-slate-500">
+                                        {" "}
+                                        · comisión banco {sim} {importe(pago.comisionBanco)}
+                                      </span>
+                                    )}
                                     <span className="text-slate-500"> · {reporto}</span>
                                   </span>
                                   {Number(pago.efectoCliente) !== 0 &&
@@ -292,8 +302,12 @@ export default async function PaginaOperacion({ params }: PageProps<"/operacione
                                       <span className="text-xs text-amber-700">Falta llevar al balance</span>
                                     ))}
                                 </div>
+                                <div className="mt-1">
+                                  <ListaComprobantes lista={listaComprobantes.filter((c) => c.pagoId === pago.id)} base="/comprobantes" />
+                                </div>
                                 {staff && (
                                   <div className="mt-1 flex flex-wrap items-start gap-4">
+                                    <FormularioAdjuntar pagoId={pago.id} />
                                     {Number(pago.efectoCliente) !== 0 && !pago.balanceEn && (
                                       <FormularioAlBalance tipo="pago" id={pago.id} fecha={pago.fecha} />
                                     )}
