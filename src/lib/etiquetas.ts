@@ -2,7 +2,7 @@ import type { Moneda, Red, Rol, TipoCuenta } from "@/db/schema";
 
 export const ROLES: Record<Rol, string> = {
   admin: "Administrador",
-  ejecutivo: "Ejecutivo (solo su cartera)",
+  ejecutivo: "Ejecutivo (acceso total)",
   operadora: "Operadora",
   cliente: "Cliente",
 };

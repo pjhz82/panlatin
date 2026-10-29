@@ -79,7 +79,10 @@ export const obtenerUsuario = cache(async (): Promise<UsuarioActual | null> => {
       ),
     )
     .limit(1);
-  return fila ?? null;
+  if (!fila) return null;
+  // Los ejecutivos tienen poder para hacer todo: valen como administradores.
+  // Su ejecutivoId se conserva para que su firma cuente en las aprobaciones.
+  return fila.rol === "ejecutivo" ? { ...fila, rol: "admin" } : fila;
 });
 
 /**
