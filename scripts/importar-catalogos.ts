@@ -8,6 +8,7 @@
  */
 import "dotenv/config";
 import { readFileSync } from "node:fs";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as s from "../src/db/schema";
@@ -22,10 +23,12 @@ async function main() {
   const datos = esquemaCatalogos.parse(JSON.parse(readFileSync(ruta, "utf8")));
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const db = drizzle({ client: pool, schema: s });
-  const r = await db.transaction((tx) => importarCatalogos(tx, datos));
+  const [admin] = await db.select({ id: s.usuarios.id }).from(s.usuarios).where(eq(s.usuarios.rol, "admin")).limit(1);
+  if (!admin) throw new Error("Crea antes un administrador (npm run crear-admin).");
+  const r = await db.transaction((tx) => importarCatalogos(tx, datos, admin.id));
   console.log(
     `Nuevos → empresas: ${r.empresas} · ejecutivos: ${r.ejecutivos} · clientes: ${r.clientes} · ` +
-      `subcuentas: ${r.subcuentas} · cuentas: ${r.cuentas}`,
+      `subcuentas: ${r.subcuentas} · cuentas: ${r.cuentas} · operaciones históricas: ${r.operaciones}`,
   );
   await pool.end();
 }

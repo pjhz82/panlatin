@@ -12,14 +12,22 @@ export type Serie = { nombre: string; color: string; puntos: Punto[] };
 
 const ALTO = 220;
 const M = { arriba: 12, derecha: 12, abajo: 26, izquierda: 64 };
-const fmtEje = new Intl.NumberFormat("es-VE", { notation: "compact", maximumFractionDigits: 1 });
+const fmtCompacto = new Intl.NumberFormat("es-VE", { notation: "compact", maximumFractionDigits: 1 });
+const fmtEntero = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 0 });
+/** Por debajo de 10.000 la abreviatura (1 K) esconde diferencias: cifra completa. */
+const fmtEje = { format: (v: number) => (Math.abs(v) < 10_000 ? fmtEntero.format(v) : fmtCompacto.format(v)) };
 const fmtValor = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtMes = new Intl.DateTimeFormat("es-VE", { month: "short", year: "2-digit", timeZone: "UTC" });
+const fmtDia = new Intl.DateTimeFormat("es-VE", { day: "2-digit", month: "short", timeZone: "UTC" });
 
 /** Formato del eje X. Es un texto (no una función) para poder pasarlo desde el servidor. */
-export type FormatoX = "mes" | "texto";
+export type FormatoX = "mes" | "dia" | "texto";
 const etiqueta = (formato: FormatoX, x: string) =>
-  formato === "mes" ? fmtMes.format(new Date(`${x}T00:00:00Z`)) : x;
+  formato === "mes"
+    ? fmtMes.format(new Date(`${x}T00:00:00Z`))
+    : formato === "dia"
+      ? fmtDia.format(new Date(`${x}T00:00:00Z`))
+      : x;
 
 function escala(min: number, max: number) {
   if (min === max) return { min: min - 1, max: max + 1, marcas: [min] };
@@ -52,17 +60,22 @@ export function GraficoLineas({
   series,
   formatoX = "mes",
   ancho = 640,
+  desdeCero = true,
 }: {
   series: Serie[];
   formatoX?: FormatoX;
   ancho?: number;
+  /** Falso para magnitudes como tasas, donde el eje se ajusta al rango de los datos. */
+  desdeCero?: boolean;
 }) {
   const etiquetaX = (x: string) => etiqueta(formatoX, x);
   const [activo, setActivo] = useState<number | null>(null);
   const xs = series[0]?.puntos.map((p) => p.x) ?? [];
   if (xs.length === 0) return <p className="py-8 text-center text-sm text-slate-500">Sin datos.</p>;
   const valores = series.flatMap((s) => s.puntos.map((p) => p.y));
-  const { min, max, marcas } = escala(Math.min(0, ...valores), Math.max(0, ...valores));
+  const { min, max, marcas } = desdeCero
+    ? escala(Math.min(0, ...valores), Math.max(0, ...valores))
+    : escala(Math.min(...valores), Math.max(...valores));
   const w = ancho - M.izquierda - M.derecha;
   const h = ALTO - M.arriba - M.abajo;
   const px = (i: number) => M.izquierda + (xs.length === 1 ? w / 2 : (i / (xs.length - 1)) * w);

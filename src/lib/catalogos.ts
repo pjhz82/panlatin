@@ -51,6 +51,23 @@ export const esquemaCatalogos = z.object({
       cuentas: z.record(z.string(), z.array(esquemaMovimiento())),
     })
     .optional(),
+  /** Operaciones históricas (registro de los Excel): completadas, sin partidas ni movimientos. */
+  operacionesHistoricas: z
+    .array(
+      z.object({
+        fecha: z.iso.date(),
+        tipo: z.enum(s.tipoOperacion.enumValues),
+        subcuenta: z.string().nullable(),
+        responsable: z.string().nullable(),
+        contraparte: z.string().nullable(),
+        ejecutivo: z.string().nullable(),
+        montoUsd: z.number(),
+        tasa: z.number().nullable(),
+        montoBs: z.number().nullable(),
+        utilidad: z.number().nullable(),
+      }),
+    )
+    .optional(),
   /** Saldo que mostraba cada hoja de Excel, para la revisión. */
   revision: z
     .array(
@@ -87,6 +104,7 @@ export type ResultadoImportacion = {
   cuentas: number;
   usuarios: number;
   movimientos: number;
+  operaciones: number;
 };
 
 type Db = Pick<NodePgDatabase<typeof s>, "insert" | "select" | "delete" | "update">;
@@ -97,7 +115,7 @@ const LOTE = 1500;
  * Carga los catálogos. Se puede repetir: lo que ya existe (mismo nombre o
  * misma dirección de wallet) no se toca. Devuelve cuántos registros son nuevos.
  */
-export async function importarCatalogos(tx: Db, datos: Catalogos): Promise<ResultadoImportacion> {
+export async function importarCatalogos(tx: Db, datos: Catalogos, usuarioId: number): Promise<ResultadoImportacion> {
   // Renombrar lo existente solo si el nombre nuevo no está ya en uso.
   for (const r of datos.renombrar ?? []) {
     const tabla = r.tipo === "cliente" ? s.clientes : s.subcuentas;
@@ -249,7 +267,36 @@ export async function importarCatalogos(tx: Db, datos: Catalogos): Promise<Resul
     }
   }
 
+  // Operaciones históricas: se sustituyen las importadas antes; las montadas en la web no se tocan.
+  let operaciones = 0;
+  if (datos.operacionesHistoricas) {
+    const idSubcuenta = new Map(
+      (await tx.select({ id: s.subcuentas.id, nombre: s.subcuentas.nombre }).from(s.subcuentas)).map((x) => [x.nombre, x.id]),
+    );
+    await tx.delete(s.operaciones).where(eq(s.operaciones.origen, "excel"));
+    const filas = datos.operacionesHistoricas.map((o) => ({
+      tipo: o.tipo,
+      estado: "completada" as const,
+      origen: "excel",
+      fecha: o.fecha,
+      subcuentaId: o.subcuenta ? (idSubcuenta.get(o.subcuenta) ?? null) : null,
+      descripcion: o.subcuenta ? null : o.responsable,
+      contraparte: o.contraparte,
+      ejecutivoId: o.ejecutivo ? (idEjecutivo.get(o.ejecutivo) ?? null) : null,
+      montoUsd: String(o.montoUsd),
+      tasa: o.tasa === null ? null : String(o.tasa),
+      montoBs: o.montoBs === null ? null : String(o.montoBs),
+      utilidad: o.utilidad === null ? null : String(o.utilidad),
+      creadoPor: usuarioId,
+    }));
+    for (let i = 0; i < filas.length; i += LOTE) {
+      await tx.insert(s.operaciones).values(filas.slice(i, i + LOTE));
+    }
+    operaciones = filas.length;
+  }
+
   return {
+    operaciones,
     empresas: empresas.length,
     ejecutivos: ejecutivos.length,
     clientes,

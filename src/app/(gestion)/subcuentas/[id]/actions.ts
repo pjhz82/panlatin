@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { cuentas, operaciones, partidas, subcuentas } from "@/db/schema";
+import { ejecutivoDe } from "@/lib/alcance";
 import { requerirUsuario } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { firmaDelCreador } from "@/lib/ejecucion";
@@ -66,6 +67,7 @@ export async function registrarEnHoja(subcuentaId: number, _prev: EstadoFormular
         montoBs: d.tasa ? String(Math.round(Math.abs(efecto) * d.tasa * 100) / 100) : null,
         creadoPor: usuario.id,
         ejecutarAlAprobar: true,
+        ejecutivoId: await ejecutivoDe(subcuentaId),
       })
       .returning({ id: operaciones.id });
     await tx.insert(partidas).values({

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { alias } from "drizzle-orm/pg-core";
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { firmas, operaciones, subcuentas, usuarios, type EstadoOperacion } from "@/db/schema";
 import { BotonEnlace, Encabezado, FilaVacia, Insignia, Tabla, Td, Th } from "@/components/ui";
@@ -41,10 +41,14 @@ export default async function PaginaOperaciones({ searchParams }: PageProps<"/op
       .from(operaciones)
       .leftJoin(subcuentas, eq(subcuentas.id, operaciones.subcuentaId))
       .innerJoin(autor, eq(autor.id, operaciones.creadoPor))
-      .where(actual.estados ? inArray(operaciones.estado, actual.estados) : undefined)
+      .where(and(eq(operaciones.origen, "web"), actual.estados ? inArray(operaciones.estado, actual.estados) : undefined))
       .orderBy(desc(operaciones.fecha), desc(operaciones.id))
       .limit(300),
-    db.select({ estado: operaciones.estado, n: sql<number>`count(*)`.mapWith(Number) }).from(operaciones).groupBy(operaciones.estado),
+    db
+      .select({ estado: operaciones.estado, n: sql<number>`count(*)`.mapWith(Number) })
+      .from(operaciones)
+      .where(eq(operaciones.origen, "web"))
+      .groupBy(operaciones.estado),
   ]);
   const n = (estados: EstadoOperacion[] | null) =>
     conteos.filter((c) => !estados || estados.includes(c.estado)).reduce((t, c) => t + c.n, 0);
@@ -54,7 +58,14 @@ export default async function PaginaOperaciones({ searchParams }: PageProps<"/op
       <Encabezado
         titulo="Operaciones"
         descripcion="Cada operación necesita la firma de dos ejecutivos antes de ejecutarse."
-        acciones={usuario.rol !== "ejecutivo" && <BotonEnlace href="/operaciones/nueva">Nueva operación</BotonEnlace>}
+        acciones={
+          <>
+            <BotonEnlace href="/operaciones/panel" variante="secundario">
+              Panel diario
+            </BotonEnlace>
+            {usuario.rol !== "ejecutivo" && <BotonEnlace href="/operaciones/nueva">Nueva operación</BotonEnlace>}
+          </>
+        }
       />
       <div className="mb-4 flex flex-wrap gap-2 text-sm">
         {Object.entries(VISTAS).map(([clave, v]) => (

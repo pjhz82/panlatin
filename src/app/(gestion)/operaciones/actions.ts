@@ -6,6 +6,7 @@ import { and, count, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { cuentas, estadoOperacion, firmas, operaciones, partidas, subcuentas, tipoOperacion } from "@/db/schema";
+import { ejecutivoDe } from "@/lib/alcance";
 import { requerirUsuario } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
 import type { EstadoFormulario } from "@/lib/formularios";
@@ -87,6 +88,7 @@ export async function crearOperacion(_prev: EstadoFormulario, formData: FormData
         montoBs: o.montoBs === null ? null : String(o.montoBs),
         utilidad: o.utilidad === null ? null : String(o.utilidad),
         creadoPor: usuario.id,
+        ejecutivoId: await ejecutivoDe(subcuentaId),
       })
       .returning({ id: operaciones.id });
     await tx.insert(partidas).values(

@@ -25,7 +25,7 @@ export async function importar(_prev: EstadoImportacion, formData: FormData): Pr
 
   let resultado: ResultadoImportacion;
   try {
-    resultado = await db.transaction((tx) => importarCatalogos(tx, datos.data));
+    resultado = await db.transaction((tx) => importarCatalogos(tx, datos.data, usuario.id));
   } catch (e) {
     return { error: `No se importó nada: ${e instanceof Error ? e.message : "error inesperado"}` };
   }

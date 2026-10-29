@@ -220,8 +220,18 @@ export const operaciones = pgTable(
     motivoCierre: text("motivo_cierre"),
     /** Registrada desde la hoja del cliente: al tener las firmas se ejecuta sola, con su fecha. */
     ejecutarAlAprobar: boolean("ejecutar_al_aprobar").notNull().default(false),
+    /** "web" si se montó en la web; "excel" si es histórica importada (sin partidas ni movimientos). */
+    origen: text("origen").notNull().default("web"),
+    /** Ejecutivo de la operación (para filtrar y repartir). */
+    ejecutivoId: integer("ejecutivo_id").references(() => ejecutivos.id),
+    /** Proveedor o cliente final con quien se hizo la operación. */
+    contraparte: text("contraparte"),
   },
-  (t) => [index("operaciones_estado_idx").on(t.estado, t.fecha), index("operaciones_subcuenta_idx").on(t.subcuentaId)],
+  (t) => [
+    index("operaciones_estado_idx").on(t.estado, t.fecha),
+    index("operaciones_fecha_idx").on(t.fecha),
+    index("operaciones_subcuenta_idx").on(t.subcuentaId),
+  ],
 );
 
 /**

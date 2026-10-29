@@ -18,7 +18,7 @@ export function FormularioImportacion() {
           <Aviso tipo="info">
             Importación terminada. Nuevos: {r.empresas} empresas, {r.ejecutivos} ejecutivos, {r.clientes} clientes,{" "}
             {r.subcuentas} subcuentas, {r.cuentas} cuentas y {r.usuarios} usuarios. Movimientos cargados:{" "}
-            {r.movimientos.toLocaleString("es")}.
+            {r.movimientos.toLocaleString("es")} · operaciones históricas: {r.operaciones.toLocaleString("es")}.
           </Aviso>
         )}
         <Campo etiqueta="Archivo de datos (.json)" ayuda="Puede tardar unos segundos con muchos movimientos.">

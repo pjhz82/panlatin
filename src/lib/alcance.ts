@@ -50,3 +50,14 @@ export function filtroClientes(usuario: UsuarioActual): SQL | undefined {
 /** Quién puede crear y editar clientes y subcuentas. */
 export const puedeEditarClientes = (usuario: UsuarioActual) =>
   usuario.rol === "admin" || usuario.rol === "operadora";
+
+/** Ejecutivo responsable de una subcuenta (el suyo o el de su cliente). */
+export async function ejecutivoDe(subcuentaId: number | null): Promise<number | null> {
+  if (!subcuentaId) return null;
+  const [fila] = await db
+    .select({ id: ejecutivoDeSubcuenta })
+    .from(subcuentas)
+    .innerJoin(clientes, eq(clientes.id, subcuentas.clienteId))
+    .where(eq(subcuentas.id, subcuentaId));
+  return fila?.id ?? null;
+}

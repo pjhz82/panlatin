@@ -13,6 +13,7 @@ export async function OperacionesCliente({ subcuentaId }: { subcuentaId: number 
       fecha: operaciones.fecha,
       tipo: operaciones.tipo,
       estado: operaciones.estado,
+      origen: operaciones.origen,
       montoUsd: operaciones.montoUsd,
       tasa: operaciones.tasa,
       utilidad: operaciones.utilidad,
@@ -37,13 +38,17 @@ export async function OperacionesCliente({ subcuentaId }: { subcuentaId: number 
         </tr>
       </thead>
       <tbody>
-        {filas.length === 0 && <FilaVacia columnas={8} texto="Este cliente no tiene operaciones registradas en la web todavía." />}
+        {filas.length === 0 && <FilaVacia columnas={8} texto="Este cliente no tiene operaciones registradas." />}
         {filas.map((o) => (
           <tr key={o.id} className="hover:bg-slate-50">
             <Td>
-              <Link href={`/operaciones/${o.id}`} className="font-medium hover:underline">
-                #{o.id}
-              </Link>
+              {o.origen === "web" ? (
+                <Link href={`/operaciones/${o.id}`} className="font-medium hover:underline">
+                  #{o.id}
+                </Link>
+              ) : (
+                <span className="text-slate-500">#{o.id}</span>
+              )}
             </Td>
             <Td className="whitespace-nowrap">{fechaCorta(o.fecha)}</Td>
             <Td>{TIPOS_OPERACION[o.tipo].nombre}</Td>
@@ -52,7 +57,11 @@ export async function OperacionesCliente({ subcuentaId }: { subcuentaId: number 
             <Td className="text-right tabular-nums">{o.tasa ? importe(o.tasa) : "—"}</Td>
             <Td className="text-right tabular-nums">{o.utilidad ? importe(o.utilidad) : "—"}</Td>
             <Td>
-              <Insignia color={ESTADOS_OPERACION[o.estado].color}>{ESTADOS_OPERACION[o.estado].nombre}</Insignia>
+              {o.origen === "excel" ? (
+                <Insignia>Histórica</Insignia>
+              ) : (
+                <Insignia color={ESTADOS_OPERACION[o.estado].color}>{ESTADOS_OPERACION[o.estado].nombre}</Insignia>
+              )}
               {o.estado === "pendiente_firmas" && <span className="ml-1 text-xs text-slate-500">{o.aprobaciones}/{FIRMAS_REQUERIDAS}</span>}
             </Td>
           </tr>
