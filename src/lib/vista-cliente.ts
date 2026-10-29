@@ -15,7 +15,9 @@ export function avanceParaCliente(estado: EstadoOperacion, partidas: PartidaConA
     estado:
       estado === "completada"
         ? ({ texto: "Completada", color: "verde" } as const)
-        : estado === "pendiente_firmas"
+        : estado === "anulada" || estado === "rechazada"
+          ? ({ texto: "Cancelada", color: "gris" } as const)
+          : estado === "pendiente_firmas"
           ? ({ texto: "En revisión", color: "ambar" } as const)
           : ({ texto: "En proceso", color: "azul" } as const),
   };

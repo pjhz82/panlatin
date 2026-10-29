@@ -241,6 +241,9 @@ export const operaciones = pgTable(
     ejecutivoId: integer("ejecutivo_id").references(() => ejecutivos.id),
     /** Proveedor o cliente final con quien se hizo la operación. */
     contraparte: text("contraparte"),
+    /** Enlace público de seguimiento para el cliente (sin usuario). Null: sin enlace. */
+    enlaceToken: text("enlace_token").unique(),
+    enlaceCreado: timestamp("enlace_creado", { withTimezone: true }),
   },
   (t) => [
     index("operaciones_estado_idx").on(t.estado, t.fecha),

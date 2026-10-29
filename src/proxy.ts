@@ -10,5 +10,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!login|instalar|_next/static|_next/image|favicon.ico).*)"],
+  // /seguimiento/<token>: enlace público para que el cliente vea su operación sin usuario.
+  matcher: ["/((?!login|instalar|seguimiento/|_next/static|_next/image|favicon.ico).*)"],
 };

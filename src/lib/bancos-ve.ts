@@ -99,3 +99,14 @@ export function textoDatosPagoBs(d: DatosPagoBs): string {
   ];
   return lineas.join("\n");
 }
+
+/**
+ * Destino sin datos sensibles, para el enlace público: titular, banco y los
+ * últimos 4 dígitos de la cuenta o del teléfono.
+ */
+export function destinoResumido(datos: DatosPagoBs | null | undefined, bancoDestino: string | null | undefined): string | null {
+  if (!datos) return bancoDestino ?? null;
+  const banco = bancoPorCodigo(datos.banco)?.nombre ?? bancoDestino;
+  const final = soloDigitos(datos.metodo === "pago_movil" ? datos.telefono : datos.cuenta).slice(-4);
+  return [datos.titular, banco, `${datos.metodo === "pago_movil" ? "pago móvil" : "cta."} ****${final}`].filter(Boolean).join(" · ");
+}

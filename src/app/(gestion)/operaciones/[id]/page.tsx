@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { alias } from "drizzle-orm/pg-core";
 import { asc, desc, eq, inArray } from "drizzle-orm";
@@ -7,6 +8,7 @@ import { cambios, cuentas, ejecutivos, firmas, firmasCambio, operaciones, pagos,
 import { BarraAvance } from "@/components/avance";
 import {
   BotonRetirarCambio,
+  EnlaceSeguimiento,
   FormularioAlBalance,
   FormularioCerrarPartida,
   FormularioFirmaCambio,
@@ -389,6 +391,12 @@ export default async function PaginaOperacion({ params }: PageProps<"/operacione
             </Seccion>
           )}
 
+          {o.subcuentaId && o.origen === "web" && (
+            <Seccion titulo="Enlace para el cliente">
+              <EnlaceSeguimiento operacionId={o.id} token={o.enlaceToken} cliente={op.subcuenta} origen={await origenWeb()} />
+            </Seccion>
+          )}
+
           {listaCambios.some((c) => c.c.estado !== "pendiente") && (
             <Seccion titulo="Cambios anteriores">
               <ul className="space-y-2 text-sm">
@@ -414,6 +422,14 @@ export default async function PaginaOperacion({ params }: PageProps<"/operacione
       </div>
     </>
   );
+}
+
+/** https://dominio con el que se está usando la web (para armar enlaces completos). */
+async function origenWeb() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "panlatin-tesoreria.netlify.app";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
 }
 
 /** Antes y después de un cambio propuesto, partida por partida. */

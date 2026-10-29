@@ -14,11 +14,13 @@ import {
   cerrarPartida,
   crearAdministrativa,
   firmarCambio,
+  generarEnlace,
   pagoAlBalance,
   partidaAlBalance,
   proponerCambio,
   reportarPago,
   retirarCambio,
+  revocarEnlace,
   revertirAplicacion,
   revertirBalancePago,
   revertirBalancePartida,
@@ -340,5 +342,70 @@ export function FormularioAdministrativa({ cuentas, hoy }: { cuentas: CuentaOpci
         </span>
       </div>
     </Formulario>
+  );
+}
+
+/** Enlace de seguimiento para mandar al cliente (WhatsApp o copiar). */
+export function EnlaceSeguimiento({
+  operacionId,
+  token,
+  cliente,
+  origen,
+}: {
+  operacionId: number;
+  token: string | null;
+  cliente: string | null;
+  /** https://dominio de la web, para armar el enlace completo. */
+  origen: string;
+}) {
+  const [estadoGenerar, generar] = useActionState(() => generarEnlace(operacionId), estadoInicial);
+  const [estadoRevocar, revocar] = useActionState(() => revocarEnlace(operacionId), estadoInicial);
+  const [copiado, setCopiado] = useState(false);
+  if (!token) {
+    return (
+      <Formulario accion={generar} estado={estadoGenerar} className="space-y-2">
+        <p className="text-sm text-slate-600">Genera un enlace para que {cliente ?? "el cliente"} vea cómo va esta operación sin usuario.</p>
+        <BotonGuardar texto="Generar enlace" />
+        <Resultado estado={estadoGenerar} />
+      </Formulario>
+    );
+  }
+  const url = `${origen}/seguimiento/${token}`;
+  const mensaje = `Hola${cliente ? ` ${cliente}` : ""}, aquí puedes ver cómo va tu operación ${operacionId}: ${url}`;
+  return (
+    <div className="space-y-2 text-sm">
+      <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} className="w-full rounded-lg border border-slate-300 bg-slate-50 px-2 py-1.5 font-mono text-xs" />
+      <div className="flex flex-wrap gap-2">
+        <Boton
+          type="button"
+          variante="secundario"
+          onClick={() =>
+            navigator.clipboard?.writeText(url).then(
+              () => {
+                setCopiado(true);
+                setTimeout(() => setCopiado(false), 2000);
+              },
+              () => setCopiado(false),
+            )
+          }
+        >
+          {copiado ? "Copiado" : "Copiar enlace"}
+        </Boton>
+        <a
+          href={`https://wa.me/?text=${encodeURIComponent(mensaje)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+        >
+          Enviar por WhatsApp
+        </a>
+      </div>
+      <Formulario accion={revocar} estado={estadoRevocar}>
+        <button type="submit" className="text-xs text-red-700 underline">
+          Desactivar enlace
+        </button>
+        <Resultado estado={estadoRevocar} />
+      </Formulario>
+    </div>
   );
 }

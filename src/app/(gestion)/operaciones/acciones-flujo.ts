@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, eq } from "drizzle-orm";
@@ -317,4 +318,28 @@ export async function crearAdministrativa(_prev: EstadoFormulario, fd: FormData)
   await registrarAuditoria({ usuarioId: usuario.id, accion: "crear", entidad: "operacion", entidadId: id, detalle: { administrativa: d } });
   refrescar();
   return { ok: true, mensaje: `Registrada como Op. ${id}. ${d.moneda !== "BS" ? "Saca dólares: pasa a aprobación antes de enviarse." : "Ya aparece en Pagos para reportarla."}` };
+}
+
+// ——— Enlace de seguimiento para el cliente ———
+
+/** Crea (o renueva) el enlace público de seguimiento de una operación. El anterior deja de funcionar. */
+export async function generarEnlace(operacionId: number): Promise<EstadoFormulario> {
+  const usuario = await requerirUsuario(["admin", "ejecutivo", "operadora"]);
+  const [op] = await db.select({ subcuentaId: operaciones.subcuentaId, ejecutivoId: operaciones.ejecutivoId }).from(operaciones).where(eq(operaciones.id, operacionId));
+  if (!op) return { error: "No existe la operación." };
+  if (!op.subcuentaId) return { error: "Esta operación no es de un cliente." };
+  if (usuario.rol === "ejecutivo" && op.ejecutivoId !== usuario.ejecutivoId) return { error: "Solo puedes compartir operaciones de tus clientes." };
+  const token = randomBytes(18).toString("base64url");
+  await db.update(operaciones).set({ enlaceToken: token, enlaceCreado: new Date() }).where(eq(operaciones.id, operacionId));
+  await registrarAuditoria({ usuarioId: usuario.id, accion: "editar", entidad: "operacion", entidadId: operacionId, detalle: { generaEnlace: true } });
+  refrescar();
+  return { ok: true };
+}
+
+export async function revocarEnlace(operacionId: number): Promise<EstadoFormulario> {
+  const usuario = await requerirUsuario(["admin", "ejecutivo", "operadora"]);
+  await db.update(operaciones).set({ enlaceToken: null, enlaceCreado: null }).where(eq(operaciones.id, operacionId));
+  await registrarAuditoria({ usuarioId: usuario.id, accion: "editar", entidad: "operacion", entidadId: operacionId, detalle: { revocaEnlace: true } });
+  refrescar();
+  return { ok: true };
 }
