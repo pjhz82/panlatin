@@ -275,6 +275,8 @@ export const partidas = pgTable(
     destino: text("destino"),
     /** Banco de destino, para saber si el pago es interbancario. */
     bancoDestino: text("banco_destino"),
+    /** Pagos en Bs.: titular, cédula/RIF, banco y cuenta (o teléfono de pago móvil). */
+    datosPago: jsonb("datos_pago"),
     /** Aplicada de una vez (registros de la hoja y operaciones anteriores a los pagos por partes). */
     ejecutadaEn: date("ejecutada_en"),
     referencia: text("referencia"),

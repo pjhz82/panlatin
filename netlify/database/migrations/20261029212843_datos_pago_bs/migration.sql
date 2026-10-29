@@ -1,0 +1,1 @@
+ALTER TABLE "partidas" ADD COLUMN "datos_pago" jsonb;

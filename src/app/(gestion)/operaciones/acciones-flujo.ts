@@ -10,7 +10,7 @@ import { requerirUsuario, type UsuarioActual } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { fotoOperacion, firmarCambioEnTx, validarCambio } from "@/lib/cambios";
 import { firmaDelCreador, requiereAprobacion, revertirPartidaEnTx } from "@/lib/ejecucion";
-import { esquemaCambio } from "@/lib/esquemas-operacion";
+import { esquemaCambio, esquemaPartidas } from "@/lib/esquemas-operacion";
 import type { EstadoFormulario } from "@/lib/formularios";
 import {
   avisoLimite,
@@ -278,20 +278,30 @@ export async function crearAdministrativa(_prev: EstadoFormulario, fd: FormData)
   const [destino] = d.cuentaDestino
     ? await db.select({ nombre: cuentas.nombre, entidad: cuentas.entidad }).from(cuentas).where(eq(cuentas.id, d.cuentaDestino))
     : [];
-  const lista = [
+  let datosPago: unknown = null;
+  try {
+    datosPago = fd.get("datosPago") ? JSON.parse(String(fd.get("datosPago"))) : null;
+  } catch {
+    return { error: "No se pudieron leer los datos del beneficiario." };
+  }
+  // Se validan como cualquier partida: en Bs. hacen falta los datos del beneficiario.
+  const partidasValidas = esquemaPartidas.safeParse([
     {
       descripcion: d.descripcion,
       cuentaId: d.cuentaOrigen,
       moneda: d.moneda,
       importeCuenta: -d.monto,
       efectoCliente: 0,
-      destino: destino ? destino.nombre : (d.destino ?? null),
-      bancoDestino: destino ? destino.entidad : (d.bancoDestino ?? null),
+      destino: destino ? destino.nombre : d.destino,
+      bancoDestino: destino ? (destino.entidad ?? undefined) : d.bancoDestino,
+      datosPago: d.tipo === "traspaso" ? null : datosPago,
     },
     ...(d.tipo === "traspaso"
-      ? [{ descripcion: `Entra: ${d.descripcion}`, cuentaId: d.cuentaDestino, moneda: d.moneda, importeCuenta: d.monto, efectoCliente: 0, destino: null, bancoDestino: null }]
+      ? [{ descripcion: `Entra: ${d.descripcion}`, cuentaId: d.cuentaDestino, moneda: d.moneda, importeCuenta: d.monto, efectoCliente: 0 }]
       : []),
-  ];
+  ]);
+  if (!partidasValidas.success) return { error: partidasValidas.error.issues[0]?.message.replace(/^Partida 1 /, "") ?? "Revisa los datos." };
+  const lista = partidasValidas.data;
   const id = await db.transaction(async (tx) => {
     const [op] = await tx
       .insert(operaciones)

@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, count, eq, max } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as s from "@/db/schema";
+import type { DatosPagoBs } from "./bancos-ve";
 import type { PropuestaCambio } from "./esquemas-operacion";
 import { partidasConAvance, recalcularEstado } from "./pagos";
 import { FIRMAS_REQUERIDAS } from "./operaciones";
@@ -30,6 +31,7 @@ export async function fotoOperacion(tx: Tx, operacionId: number) {
       efectoCliente: Number(p.efectoCliente ?? 0),
       destino: p.destino,
       bancoDestino: p.bancoDestino,
+      datosPago: p.datosPago as DatosPagoBs | null,
     })),
   };
 }
@@ -105,6 +107,7 @@ export async function aplicarCambioEnTx(tx: Tx, cambio: typeof s.cambios.$inferS
       efectoCliente: String(p.efectoCliente),
       destino: p.destino,
       bancoDestino: p.bancoDestino,
+      datosPago: p.datosPago ?? null,
     };
     if (p.id) await tx.update(s.partidas).set(valores).where(eq(s.partidas.id, p.id));
     else await tx.insert(s.partidas).values({ ...valores, operacionId: op.id, orden: ++orden });

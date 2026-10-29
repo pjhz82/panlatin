@@ -6,6 +6,7 @@ import { cambios, cuentas, operaciones } from "@/db/schema";
 import { FormularioCambio } from "@/components/formularios-flujo";
 import { Encabezado, Tarjeta } from "@/components/ui";
 import { requerirUsuario } from "@/lib/auth";
+import type { DatosPagoBs } from "@/lib/bancos-ve";
 import { TIPOS_OPERACION } from "@/lib/operaciones";
 import { partidasConAvance } from "@/lib/pagos";
 
@@ -66,6 +67,7 @@ export default async function PaginaCambiar({ params }: PageProps<"/operaciones/
               efectoCliente: p.efectoCliente,
               destino: p.destino ?? "",
               bancoDestino: p.bancoDestino ?? "",
+              datosPago: (p.datosPago as DatosPagoBs | null) ?? null,
             })),
           }}
         />

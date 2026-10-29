@@ -80,6 +80,7 @@ export async function crearOperacion(_prev: EstadoFormulario, formData: FormData
         efectoCliente: String(p.efectoCliente),
         destino: p.destino,
         bancoDestino: p.bancoDestino,
+        datosPago: p.datosPago,
       })),
     );
     // Solo las transferencias de dólares necesitan aprobación; el resto queda aprobado al crearse.

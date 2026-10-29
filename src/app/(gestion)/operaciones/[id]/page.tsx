@@ -15,7 +15,9 @@ import {
 } from "@/components/formularios-flujo";
 import { Seccion } from "@/components/indicadores";
 import { BotonEnlace, Encabezado, Insignia, Tarjeta } from "@/components/ui";
+import { VerDatosPagoBs } from "@/components/campos-pago-bs";
 import { requerirUsuario } from "@/lib/auth";
+import type { DatosPagoBs } from "@/lib/bancos-ve";
 import { fechaCorta, importe } from "@/lib/dinero";
 import { cuentasParaPagos } from "@/lib/flujo";
 import { ESTADOS_OPERACION, esSalidaDeDolares, FIRMAS_REQUERIDAS, TIPOS_OPERACION, SIMBOLO } from "@/lib/operaciones";
@@ -218,11 +220,15 @@ export default async function PaginaOperacion({ params }: PageProps<"/operacione
                       {p.orden}. {p.descripcion}
                       {esSalidaDeDolares(p.importe, p.moneda) && <span className="ml-2 text-xs text-amber-700">requiere aprobación</span>}
                     </p>
-                    {(p.destino || p.bancoDestino) && (
-                      <p className="text-sm text-slate-600">
-                        {p.importe < 0 ? "A: " : "De: "}
-                        {[p.destino, p.bancoDestino].filter(Boolean).join(" · ")}
-                      </p>
+                    {p.datosPago ? (
+                      <VerDatosPagoBs datos={p.datosPago as DatosPagoBs} />
+                    ) : (
+                      (p.destino || p.bancoDestino) && (
+                        <p className="text-sm text-slate-600">
+                          {p.importe < 0 ? "A: " : "De: "}
+                          {[p.destino, p.bancoDestino].filter(Boolean).join(" · ")}
+                        </p>
+                      )
                     )}
                     {p.cerradaEn && (
                       <p className="text-xs text-slate-500">

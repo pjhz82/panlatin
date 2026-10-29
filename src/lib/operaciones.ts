@@ -1,4 +1,5 @@
 import type { EstadoOperacion, Moneda, TipoOperacion } from "@/db/schema";
+import { codigoDeBanco, type DatosPagoBs } from "./bancos-ve";
 
 /*
  * Plantillas de operación: a partir de los datos generales proponen las
@@ -78,6 +79,8 @@ export type PartidaBorrador = {
   /** A dónde se paga o de dónde se cobra. */
   destino?: string;
   bancoDestino?: string;
+  /** Pagos en Bs.: datos del beneficiario. */
+  datosPago?: DatosPagoBs | null;
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -224,6 +227,14 @@ export function avancePartida(p: DatosAvance, conCliente: boolean) {
 export const normalizarBanco = (b: string | null | undefined) =>
   (b ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/gi, "").toLowerCase();
 
-/** Un pago es interbancario si el banco de destino es distinto del de nuestra cuenta (cuando se conocen los dos). */
-export const esInterbancario = (bancoCuenta: string | null | undefined, bancoDestino: string | null | undefined) =>
-  Boolean(normalizarBanco(bancoCuenta) && normalizarBanco(bancoDestino)) && normalizarBanco(bancoCuenta) !== normalizarBanco(bancoDestino);
+/**
+ * Un pago es interbancario si el banco de destino es distinto del de nuestra
+ * cuenta (cuando se conocen los dos). Los bancos venezolanos se comparan por
+ * código, así «BDV» y «Banco de Venezuela» son el mismo.
+ */
+export function esInterbancario(bancoCuenta: string | null | undefined, bancoDestino: string | null | undefined) {
+  const a = codigoDeBanco(bancoCuenta);
+  const b = codigoDeBanco(bancoDestino);
+  if (a && b) return a !== b;
+  return Boolean(normalizarBanco(bancoCuenta) && normalizarBanco(bancoDestino)) && normalizarBanco(bancoCuenta) !== normalizarBanco(bancoDestino);
+}

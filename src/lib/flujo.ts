@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, gte, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import { cambios, cuentas, ejecutivos, operaciones, pagos, partidas, subcuentas, usuarios, type EstadoOperacion } from "@/db/schema";
@@ -9,7 +9,7 @@ import { partidasConAvance, resumenAvance, usoLimites, type PartidaConAvance } f
 export const ABIERTAS: EstadoOperacion[] = ["pendiente_firmas", "aprobada", "en_ejecucion"];
 
 /** Operaciones web con sus datos de cabecera. */
-export async function operacionesConAvance(estados: EstadoOperacion[] | null, limite = 300) {
+export async function operacionesConAvance(estados: EstadoOperacion[] | null, limite = 300, extra?: SQL) {
   const ops = await db
     .select({
       id: operaciones.id,
@@ -28,7 +28,7 @@ export async function operacionesConAvance(estados: EstadoOperacion[] | null, li
     .from(operaciones)
     .leftJoin(subcuentas, eq(subcuentas.id, operaciones.subcuentaId))
     .leftJoin(ejecutivos, eq(ejecutivos.id, operaciones.ejecutivoId))
-    .where(and(eq(operaciones.origen, "web"), estados ? inArray(operaciones.estado, estados) : undefined))
+    .where(and(eq(operaciones.origen, "web"), estados ? inArray(operaciones.estado, estados) : undefined, extra))
     .orderBy(desc(operaciones.fecha), desc(operaciones.id))
     .limit(limite);
   const lista = await partidasConAvance(db, ops.map((o) => o.id));
@@ -127,3 +127,18 @@ export async function pendientesDeBalance() {
 
 /** Fecha (YYYY-MM-DD) de hace `n` días. */
 export const haceDias = (n: number) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+
+/**
+ * Operaciones de un cliente para su portal: las abiertas y las completadas en
+ * los últimos 30 días, de las subcuentas que puede ver.
+ */
+export async function operacionesDeCliente(clienteId: number) {
+  return operacionesConAvance(
+    [...ABIERTAS, "completada"],
+    100,
+    and(
+      inArray(operaciones.subcuentaId, db.select({ id: subcuentas.id }).from(subcuentas).where(eq(subcuentas.clienteId, clienteId))),
+      or(inArray(operaciones.estado, ABIERTAS), gte(operaciones.fecha, haceDias(30))),
+    ),
+  );
+}

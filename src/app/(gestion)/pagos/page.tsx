@@ -2,7 +2,9 @@ import Link from "next/link";
 import { BarraAvance } from "@/components/avance";
 import { FormularioPago, FormularioRevertir } from "@/components/formularios-flujo";
 import { Encabezado, Insignia, Tabla, Tarjeta, Td, Th } from "@/components/ui";
+import { VerDatosPagoBs } from "@/components/campos-pago-bs";
 import { requerirUsuario } from "@/lib/auth";
+import type { DatosPagoBs } from "@/lib/bancos-ve";
 import { fechaCorta, importe } from "@/lib/dinero";
 import { cuentasParaPagos, haceDias, pagosReportados, pendientesDePago } from "@/lib/flujo";
 import { TIPOS_OPERACION, SIMBOLO } from "@/lib/operaciones";
@@ -36,11 +38,15 @@ export default async function PaginaPagos() {
                   {op.ejecutivo && <span className="text-slate-500"> · {op.ejecutivo}</span>}
                 </p>
                 <p className="font-medium">{p.descripcion}</p>
-                {(p.destino || p.bancoDestino) && (
-                  <p className="text-sm text-slate-600">
-                    {p.importe < 0 ? "A: " : "De: "}
-                    {[p.destino, p.bancoDestino].filter(Boolean).join(" · ")}
-                  </p>
+{p.datosPago ? (
+                  <VerDatosPagoBs datos={p.datosPago as DatosPagoBs} />
+                ) : (
+                  (p.destino || p.bancoDestino) && (
+                    <p className="text-sm text-slate-600">
+                      {p.importe < 0 ? "A: " : "De: "}
+                      {[p.destino, p.bancoDestino].filter(Boolean).join(" · ")}
+                    </p>
+                  )
                 )}
               </div>
               <div className="text-right">

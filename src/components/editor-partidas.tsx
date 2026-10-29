@@ -2,6 +2,8 @@
 
 import { Boton, Entrada, Selector } from "@/components/ui";
 import type { Moneda } from "@/db/schema";
+import { CamposPagoBs } from "@/components/campos-pago-bs";
+import { datosPagoVacios } from "@/lib/bancos-ve";
 import { leerImporte } from "@/lib/importes";
 import { esSalidaDeDolares, SIMBOLO, type PartidaBorrador } from "@/lib/operaciones";
 
@@ -37,6 +39,7 @@ export function EditorPartidas({
       {lista.map((p, i) => {
         const fija = p.id !== undefined && fijas.includes(p.id);
         const dolares = esSalidaDeDolares(p.importeCuenta, p.moneda);
+        const pagoBs = p.moneda === "BS" && p.importeCuenta < 0;
         return (
           <div key={p.id ?? `n${i}`} className="rounded-lg border border-slate-200 p-3">
             <div className="grid gap-2 sm:grid-cols-[minmax(0,2fr)_8rem_10rem_10rem]">
@@ -85,16 +88,27 @@ export function EditorPartidas({
                 />
               </label>
             </div>
+            {pagoBs && (
+              <div className="mt-2">
+                <CamposPagoBs valor={p.datosPago ?? datosPagoVacios()} cambiar={(d) => editar(i, { datosPago: d })} />
+              </div>
+            )}
             {p.moneda && (
               <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,2fr)_10rem_minmax(0,1fr)]">
-                <label className="text-xs text-slate-500">
-                  {p.importeCuenta < 0 ? "A dónde se paga (beneficiario, cuenta o wallet)" : "De dónde se cobra (opcional)"}
-                  <Entrada value={p.destino ?? ""} onChange={(e) => editar(i, { destino: e.target.value })} placeholder="Ej.: Comercial XYZ · cta. 0102-…-4821" />
-                </label>
-                <label className="text-xs text-slate-500">
-                  Banco de destino
-                  <Entrada value={p.bancoDestino ?? ""} onChange={(e) => editar(i, { bancoDestino: e.target.value })} placeholder="Ej.: Banesco" />
-                </label>
+                {pagoBs ? (
+                  <span className="text-xs text-slate-500 sm:col-span-2 sm:self-end sm:pb-2">El destino sale de los datos del beneficiario.</span>
+                ) : (
+                  <>
+                    <label className="text-xs text-slate-500">
+                      {p.importeCuenta < 0 ? "A dónde se paga (beneficiario, cuenta o wallet)" : "De dónde se cobra (opcional)"}
+                      <Entrada value={p.destino ?? ""} onChange={(e) => editar(i, { destino: e.target.value })} placeholder="Ej.: Comercial XYZ · cta. 0102-…-4821" />
+                    </label>
+                    <label className="text-xs text-slate-500">
+                      Banco de destino
+                      <Entrada value={p.bancoDestino ?? ""} onChange={(e) => editar(i, { bancoDestino: e.target.value })} placeholder="Ej.: Banesco" />
+                    </label>
+                  </>
+                )}
                 <label className="text-xs text-slate-500">
                   Cuenta nuestra sugerida (opcional)
                   <Selector value={p.cuentaId ?? ""} onChange={(e) => editar(i, { cuentaId: e.target.value ? Number(e.target.value) : null })}>

@@ -3,6 +3,8 @@
 import { useActionState, useState } from "react";
 import { BotonGuardar, Formulario } from "@/components/formulario";
 import { EditorPartidas, hayDolaresQueSalen, SIMBOLO, type CuentaOpcion } from "@/components/editor-partidas";
+import { CamposPagoBs } from "@/components/campos-pago-bs";
+import { datosPagoVacios } from "@/lib/bancos-ve";
 import { AreaTexto, Aviso, Boton, Campo, Entrada, Selector } from "@/components/ui";
 import type { Moneda } from "@/db/schema";
 import { estadoInicial, type EstadoFormulario } from "@/lib/formularios";
@@ -257,6 +259,8 @@ export function FormularioAdministrativa({ cuentas, hoy }: { cuentas: CuentaOpci
   const [estado, accion] = useActionState(crearAdministrativa, estadoInicial);
   const [tipo, setTipo] = useState("gasto");
   const [moneda, setMoneda] = useState<Moneda>("BS");
+  const [datosPago, setDatosPago] = useState(datosPagoVacios());
+  const pagoBs = moneda === "BS" && tipo !== "traspaso";
   const deMoneda = cuentas.filter((c) => c.moneda === moneda);
   return (
     <Formulario accion={accion} estado={estado} reiniciarTrasExito className="space-y-4">
@@ -312,7 +316,7 @@ export function FormularioAdministrativa({ cuentas, hoy }: { cuentas: CuentaOpci
               ))}
             </Selector>
           </Campo>
-        ) : (
+        ) : pagoBs ? null : (
           <>
             <Campo etiqueta="A quién / a dónde se paga">
               <Entrada name="destino" />
@@ -323,6 +327,12 @@ export function FormularioAdministrativa({ cuentas, hoy }: { cuentas: CuentaOpci
           </>
         )}
       </div>
+      {pagoBs && (
+        <>
+          <input type="hidden" name="datosPago" value={JSON.stringify(datosPago)} />
+          <CamposPagoBs valor={datosPago} cambiar={setDatosPago} />
+        </>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         <BotonGuardar texto="Registrar" />
         <span className="text-xs text-slate-500">
